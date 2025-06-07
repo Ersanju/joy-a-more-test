@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "336084290441",
+    "project_id": "joy-a-more-test-9f245",
+    "storage_bucket": "joy-a-more-test-9f245.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336084290441:android:a30ba30badda66d722af58",
+        "android_client_info": {
+          "package_name": "com.example.joy_a_more_test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkB06oBcUr8I1NeUHJymupeKiOQpcDgE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
