@@ -14,10 +14,11 @@ class ProductListPage extends StatelessWidget {
         backgroundColor: Colors.deepPurple,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('products')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('products')
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Center(child: Text("Error loading products"));
@@ -42,23 +43,32 @@ class ProductListPage extends StatelessWidget {
               final name = data['name'] ?? 'Unnamed Product';
               final categoryId = data['categoryId'] ?? 'No category';
               final imageUrls = List<String>.from(data['imageUrls'] ?? []);
-              final defaultPrice = data['extraAttributes']?['defaultVariant']?['price'];
+              final defaultPrice =
+                  data['extraAttributes']?['defaultVariant']?['price'];
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: InkWell(
-                    onTap: () {
-                      final product = Product.fromJson({...data, 'id': docs[index].id});
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProductDetailPage(product: product.toJson()), // <-- convert to map
-                        ),
-                      );
-                    },
-                    child: Padding(
+                  onTap: () {
+                    final product = Product.fromJson({
+                      ...data,
+                      'id': docs[index].id,
+                    });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => ProductDetailPage(
+                              product: product.toJson(),
+                            ), // <-- convert to map
+                      ),
+                    );
+                  },
+                  child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,24 +76,33 @@ class ProductListPage extends StatelessWidget {
                         // Product Image
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: imageUrls.isNotEmpty
-                              ? Image.network(imageUrls[0],
-                            width: 70,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 70,
-                              height: 70,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.broken_image, size: 36),
-                            ),
-                          )
-                              : Container(
-                            width: 70,
-                            height: 70,
-                            color: Colors.grey[200],
-                            child: const Icon(Icons.image_not_supported, size: 36),
-                          ),
+                          child:
+                              imageUrls.isNotEmpty
+                                  ? Image.network(
+                                    imageUrls[0],
+                                    width: 70,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (_, __, ___) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey[200],
+                                          child: const Icon(
+                                            Icons.broken_image,
+                                            size: 36,
+                                          ),
+                                        ),
+                                  )
+                                  : Container(
+                                    width: 70,
+                                    height: 70,
+                                    color: Colors.grey[200],
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                      size: 36,
+                                    ),
+                                  ),
                         ),
                         const SizedBox(width: 12),
                         // Product Info
@@ -99,13 +118,17 @@ class ProductListPage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text('Category: $categoryId',
-                                  style: const TextStyle(fontSize: 13)),
+                              Text(
+                                'Category: $categoryId',
+                                style: const TextStyle(fontSize: 13),
+                              ),
                               if (defaultPrice != null)
                                 Text(
                                   'Price: ₹$defaultPrice',
                                   style: const TextStyle(
-                                      color: Colors.green, fontSize: 14),
+                                    color: Colors.green,
+                                    fontSize: 14,
+                                  ),
                                 ),
                             ],
                           ),

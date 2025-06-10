@@ -39,14 +39,14 @@ class Product {
     tags: List<String>.from(json['tags'] ?? []),
     popularityScore: json['popularityScore'] ?? 0,
     reviews:
-    (json['reviews'] as List<dynamic>?)
-        ?.map((e) => Review.fromJson(e))
-        .toList() ??
+        (json['reviews'] as List<dynamic>?)
+            ?.map((e) => Review.fromJson(e))
+            .toList() ??
         [],
     extraAttributes:
-    json['extraAttributes'] != null
-        ? ExtraAttributes.fromJson(json['extraAttributes'])
-        : null,
+        json['extraAttributes'] != null
+            ? ExtraAttributes.fromJson(json['extraAttributes'])
+            : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -80,7 +80,7 @@ class ExtraAttributes {
       ExtraAttributes(
         defaultVariant: Variant.fromJson(json['defaultVariant']),
         variants:
-        (json['variants'] as List).map((e) => Variant.fromJson(e)).toList(),
+            (json['variants'] as List).map((e) => Variant.fromJson(e)).toList(),
         shapes: (json['shapes'] as List).map((e) => Shape.fromJson(e)).toList(),
       );
 
@@ -112,8 +112,10 @@ class Variant {
     weight: json['weight'],
     tier: json['tier'],
     price: (json['price'] as num).toDouble(),
-    oldPrice: json['oldPrice'] != null ? (json['oldPrice'] as num).toDouble() : null,
-    discount: json['discount'] != null ? (json['discount'] as num).toDouble() : null,
+    oldPrice:
+        json['oldPrice'] != null ? (json['oldPrice'] as num).toDouble() : null,
+    discount:
+        json['discount'] != null ? (json['discount'] as num).toDouble() : null,
     sku: json['sku'],
   );
 

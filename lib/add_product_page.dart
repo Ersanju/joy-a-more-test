@@ -39,6 +39,7 @@ class _AddProductPageState extends State<AddProductPage> {
     }
     return url; // Return as-is if not a Drive link
   }
+
   /// Checks if the given URL is a valid HTTP/HTTPS link
   bool _isValidUrl(String url) {
     final pattern = r'^(http|https):\/\/[^ "]+$';
@@ -241,13 +242,14 @@ class _AddProductPageState extends State<AddProductPage> {
       name: name,
       description: _descController.text.trim(),
       categoryId: _categoryIdController.text.trim(),
-      imageUrls: _imageUrlsController.text
-          .trim()
-          .split(',')
-          .map((e) => e.trim())
-          .where(_isValidUrl)
-          .map((url) => convertGoogleDriveUrl(url))
-          .toList(),
+      imageUrls:
+          _imageUrlsController.text
+              .trim()
+              .split(',')
+              .map((e) => e.trim())
+              .where(_isValidUrl)
+              .map((url) => convertGoogleDriveUrl(url))
+              .toList(),
       isAvailable: true,
       stockQuantity: int.tryParse(_stockQtyController.text.trim()) ?? 0,
       createdAt: DateTime.now(),
@@ -457,7 +459,8 @@ class _AddProductPageState extends State<AddProductPage> {
                         (v) => RadioListTile<Variant>(
                           value: v,
                           groupValue: _defaultVariant,
-                          onChanged: (val) => setState(() => _defaultVariant = val),
+                          onChanged:
+                              (val) => setState(() => _defaultVariant = val),
                           title: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [

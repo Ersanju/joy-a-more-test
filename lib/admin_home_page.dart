@@ -36,7 +36,9 @@ class AdminHomePage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProductListPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProductListPage(),
+                  ),
                 );
               },
             ),
@@ -76,7 +78,13 @@ class _AdminTile extends StatelessWidget {
             children: [
               Icon(icon, size: 40, color: Colors.deepPurple),
               const SizedBox(height: 8),
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),

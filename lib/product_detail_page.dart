@@ -120,49 +120,66 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     // Step 1: Ask for pincode first
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Check for your location"),
-        content: TextField(
-          controller: pinCodeController,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(hintText: "Enter 6-digit postal code"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () async {
-              final enteredPin = pinCodeController.text.trim();
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Check for your location"),
+            content: TextField(
+              controller: pinCodeController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                hintText: "Enter 6-digit postal code",
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final enteredPin = pinCodeController.text.trim();
 
-              if (enteredPin.length != 6 || !RegExp(r'^\d{6}$').hasMatch(enteredPin)) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enter valid 6-digit postal code")));
-                return;
-              }
+                  if (enteredPin.length != 6 ||
+                      !RegExp(r'^\d{6}$').hasMatch(enteredPin)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Enter valid 6-digit postal code"),
+                      ),
+                    );
+                    return;
+                  }
 
-              if (!allowedPincodes.contains(enteredPin)) {
-                Navigator.pop(context);
-                await showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text("Not Operational"),
-                    content: const Text("We are not delivering at this location yet."),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK")),
-                    ],
-                  ),
-                );
-                return;
-              }
+                  if (!allowedPincodes.contains(enteredPin)) {
+                    Navigator.pop(context);
+                    await showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: const Text("Not Operational"),
+                            content: const Text(
+                              "We are not delivering at this location yet.",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("OK"),
+                              ),
+                            ],
+                          ),
+                    );
+                    return;
+                  }
 
-              Navigator.pop(context); // Close pin code dialog
+                  Navigator.pop(context); // Close pin code dialog
 
-              // Step 2: Continue with full address form
-              await _showFullAddressForm(enteredPin);
-            },
-            child: const Text("Check"),
+                  // Step 2: Continue with full address form
+                  await _showFullAddressForm(enteredPin);
+                },
+                child: const Text("Check"),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -176,63 +193,83 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Enter Delivery Details"),
-        content: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: address1Controller,
-                  decoration: const InputDecoration(labelText: "Address Line 1"),
-                  validator: (value) => value == null || value.trim().isEmpty ? 'Required' : null,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Enter Delivery Details"),
+            content: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: address1Controller,
+                      decoration: const InputDecoration(
+                        labelText: "Address Line 1",
+                      ),
+                      validator:
+                          (value) =>
+                              value == null || value.trim().isEmpty
+                                  ? 'Required'
+                                  : null,
+                    ),
+                    TextFormField(
+                      controller: address2Controller,
+                      decoration: const InputDecoration(
+                        labelText: "Address Line 2",
+                      ),
+                    ),
+                    TextFormField(
+                      controller: areaController,
+                      decoration: const InputDecoration(
+                        labelText: "Area / Locality",
+                      ),
+                      validator:
+                          (value) =>
+                              value == null || value.trim().isEmpty
+                                  ? 'Required'
+                                  : null,
+                    ),
+                    TextFormField(
+                      controller: districtController,
+                      decoration: const InputDecoration(labelText: "District"),
+                      enabled: false,
+                    ),
+                    TextFormField(
+                      controller: stateController,
+                      decoration: const InputDecoration(labelText: "State"),
+                      enabled: false,
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: "Postal Code",
+                      ),
+                      initialValue: postalCode,
+                      enabled: false,
+                    ),
+                  ],
                 ),
-                TextFormField(
-                  controller: address2Controller,
-                  decoration: const InputDecoration(labelText: "Address Line 2"),
-                ),
-                TextFormField(
-                  controller: areaController,
-                  decoration: const InputDecoration(labelText: "Area / Locality"),
-                  validator: (value) => value == null || value.trim().isEmpty ? 'Required' : null,
-                ),
-                TextFormField(
-                  controller: districtController,
-                  decoration: const InputDecoration(labelText: "District"),
-                  enabled: false,
-                ),
-                TextFormField(
-                  controller: stateController,
-                  decoration: const InputDecoration(labelText: "State"),
-                  enabled: false,
-                ),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: "Postal Code"),
-                  initialValue: postalCode,
-                  enabled: false,
-                ),
-              ],
+              ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    setState(() {
+                      _deliveryLocation =
+                          "${address1Controller.text}, ${address2Controller.text}, ${areaController.text}, Gonda, Uttar Pradesh - $postalCode";
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("Update"),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                setState(() {
-                  _deliveryLocation =
-                  "${address1Controller.text}, ${address2Controller.text}, ${areaController.text}, Gonda, Uttar Pradesh - $postalCode";
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Update"),
-          ),
-        ],
-      ),
     );
   }
 
