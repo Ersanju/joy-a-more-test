@@ -13,7 +13,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Firestore User Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Joy-a-More Admin Portal',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: AdminHomePage(),
     );

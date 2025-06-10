@@ -1,20 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:joy_a_more_test/product_detail_page.dart';
+import 'package:joy_a_more_test/product_model.dart';
 
 class ProductListPage extends StatelessWidget {
   const ProductListPage({super.key});
-
-  /// Converts a Google Drive share URL to a direct image URL
-  String convertGoogleDriveUrl(String url) {
-    final regex = RegExp(r'd/([^/]+)');
-    final match = regex.firstMatch(url);
-    if (match != null) {
-      final fileId = match.group(1);
-      return 'https://drive.google.com/uc?export=view&id=$fileId';
-    }
-    return url; // Return as-is if not a Drive link
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,15 +49,16 @@ class ProductListPage extends StatelessWidget {
                 elevation: 2,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProductDetailPage(product: data),
-                      ),
-                    );
-                  },
-                  child: Padding(
+                    onTap: () {
+                      final product = Product.fromJson({...data, 'id': docs[index].id});
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailPage(product: product.toJson()), // <-- convert to map
+                        ),
+                      );
+                    },
+                    child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,8 +67,7 @@ class ProductListPage extends StatelessWidget {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: imageUrls.isNotEmpty
-                              ? Image.network(
-                            convertGoogleDriveUrl(imageUrls[0]),
+                              ? Image.network(imageUrls[0],
                             width: 70,
                             height: 70,
                             fit: BoxFit.cover,

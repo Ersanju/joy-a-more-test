@@ -28,6 +28,17 @@ class _AddProductPageState extends State<AddProductPage> {
   bool _isSubmitting = false;
 
   /// --------- UTIL METHODS ---------
+
+  /// Converts a Google Drive share URL to a direct image UR
+  String convertGoogleDriveUrl(String url) {
+    final regex = RegExp(r'd/([^/]+)');
+    final match = regex.firstMatch(url);
+    if (match != null) {
+      final fileId = match.group(1);
+      return 'https://drive.google.com/uc?export=view&id=$fileId';
+    }
+    return url; // Return as-is if not a Drive link
+  }
   /// Checks if the given URL is a valid HTTP/HTTPS link
   bool _isValidUrl(String url) {
     final pattern = r'^(http|https):\/\/[^ "]+$';
@@ -230,13 +241,13 @@ class _AddProductPageState extends State<AddProductPage> {
       name: name,
       description: _descController.text.trim(),
       categoryId: _categoryIdController.text.trim(),
-      imageUrls:
-          _imageUrlsController.text
-              .trim()
-              .split(',')
-              .map((e) => e.trim())
-              .where(_isValidUrl)
-              .toList(),
+      imageUrls: _imageUrlsController.text
+          .trim()
+          .split(',')
+          .map((e) => e.trim())
+          .where(_isValidUrl)
+          .map((url) => convertGoogleDriveUrl(url))
+          .toList(),
       isAvailable: true,
       stockQuantity: int.tryParse(_stockQtyController.text.trim()) ?? 0,
       createdAt: DateTime.now(),
