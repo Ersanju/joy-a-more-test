@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'free_message_card_page.dart';
+
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;
 
@@ -18,7 +20,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Timer? _autoScrollTimer;
   String? _deliveryLocation = "Detecting location...";
   int selectedVariantIndex = 0;
-
+  Map<String, dynamic>? selectedCardData;
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -448,6 +450,42 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+
+  String? _cakeMessage;
+  String? _cardMessage;
+
+  void _showCakeMessageDialog() {
+    TextEditingController controller = TextEditingController(text: _cakeMessage);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Message on Cake"),
+        content: TextField(
+          controller: controller,
+          maxLength: 30,
+          decoration: const InputDecoration(
+            hintText: "Enter message (max 30 chars)",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _cakeMessage = controller.text.trim());
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   void initState() {
     super.initState();
@@ -504,7 +542,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 🔁 Auto-scrolling Image Carousel with padding + rounded corners
+            // Auto-scrolling Image Carousel with padding + rounded corners
             Stack(
               children: [
                 Padding(
@@ -558,12 +596,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
             ),
 
-            // Product name and pricing
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+
+                  // Product name and pricing
                   Text(
                     name,
                     style: const TextStyle(
@@ -572,8 +611,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                   ),
                   const SizedBox(height: 4),
-
-                  // Price & Tax Info
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -704,8 +741,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
+
+                  // Available options
                   const Text(
                     "Available Options",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -775,10 +813,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           }).toList(),
                     ),
                   ),
-
                   const SizedBox(height: 20),
 
-                  // Location
+                  // Delivery Location
                   Container(
                     padding: const EdgeInsets.all(16),
                     margin: const EdgeInsets.symmetric(vertical: 4),
@@ -845,8 +882,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ],
                     ),
                   ),
+
                   _buildDeliveryDateTimePicker(),
                   const SizedBox(height: 20),
+
                   const Text(
                     "Add Messages",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -854,14 +893,77 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.cake),
-                    label: const Text("Message on Cake"),
-                    onPressed: () {},
+                    label: Text(_cakeMessage != null ? "Edit Cake Message" : "Message on Cake"),
+                    onPressed: _showCakeMessageDialog,
                   ),
+                  if (_cakeMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("🎂 ", style: TextStyle(fontSize: 16)),
+                          Expanded(
+                            child: Text(
+                              "Cake Message: $_cakeMessage",
+                              style: const TextStyle(color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.card_giftcard),
                     label: const Text("Add Free Message Card"),
-                    onPressed: () {},
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const FreeMessageCardPage()),
+                      );
+
+                      if (result != null && result is Map<String, dynamic>) {
+                        setState(() {
+                          selectedCardData = result;
+                        });
+                      }
+                    },
                   ),
+                  const SizedBox(height: 12),
+
+                  // 👇 Show summary after returning
+                  if (selectedCardData != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Occasion: ${selectedCardData!['occasion']}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Message: ${selectedCardData!['message'].toString().length > 40
+                                ? selectedCardData!['message'].toString().substring(0, 40) + "..."
+                                : selectedCardData!['message']}",
+                            style: const TextStyle(color: Colors.black87),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   const SizedBox(height: 20),
                   buildExpansionTile(
