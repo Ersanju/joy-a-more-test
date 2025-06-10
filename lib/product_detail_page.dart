@@ -21,6 +21,182 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String? _deliveryLocation = "Detecting location...";
   int selectedVariantIndex = 0;
   Map<String, dynamic>? selectedCardData;
+
+  // Price
+  Widget _buildProductPriceRow({
+    required String name,
+    required double price,
+    double? oldPrice,
+  }) {
+    final int discountPercent =
+        (oldPrice != null && oldPrice > 0)
+            ? (((oldPrice - price) / oldPrice) * 100).round()
+            : 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          name,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              "₹$price",
+              style: const TextStyle(fontSize: 18, color: Colors.black),
+            ),
+            const SizedBox(width: 10),
+            if (oldPrice != null)
+              Text(
+                "₹$oldPrice",
+                style: const TextStyle(
+                  decoration: TextDecoration.lineThrough,
+                  color: Colors.grey,
+                  fontSize: 14,
+                ),
+              ),
+            const SizedBox(width: 10),
+            if (oldPrice != null)
+              Text(
+                '$discountPercent% OFF',
+                style: const TextStyle(color: Colors.green, fontSize: 14),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void showPriceDetailsBottomSheet({
+    required BuildContext context,
+    required double price,
+    double? oldPrice,
+  }) {
+    final int savings = (oldPrice != null) ? (oldPrice - price).round() : 0;
+    final int discountPercent =
+        oldPrice != null && oldPrice > 0
+            ? ((savings / oldPrice) * 100).round()
+            : 0;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(
+                child: Icon(Icons.remove, size: 32, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Price Details",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Divider(),
+              ListTile(
+                title: const Text("Maximum Retail Price"),
+                subtitle: const Text("(Inclusive of all taxes)"),
+                trailing: Text(
+                  "₹${oldPrice?.toInt() ?? price.toInt()}",
+                  style: const TextStyle(
+                    decoration: TextDecoration.lineThrough,
+                  ),
+                ),
+              ),
+              ListTile(
+                title: const Text("Selling Price"),
+                trailing: Text(
+                  "₹${price.toInt()}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(),
+              if (oldPrice != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 12),
+                  child: Text(
+                    "You save ₹$savings ($discountPercent%) on this product",
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Variant
+  Widget _buildVariantSelector({
+    required List<Map<String, dynamic>> variants,
+    required int selectedIndex,
+    required void Function(int) onVariantSelected,
+    required List<String> imageUrls,
+  }) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children:
+            variants.asMap().entries.map((entry) {
+              final int index = entry.key;
+              final variant = entry.value;
+              final bool isSelected = index == selectedIndex;
+
+              return GestureDetector(
+                onTap: () => onVariantSelected(index),
+                child: Container(
+                  width: 100,
+                  height: 150,
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected ? Colors.red : Colors.grey,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    color: isSelected ? Colors.red.shade50 : Colors.white,
+                  ),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          variant['image'] ?? imageUrls.first,
+                          height: 90,
+                          width: 90,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => const Icon(Icons.broken_image),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text('${variant['weight']}'),
+                      Text(
+                        '₹${variant['price']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+      ),
+    );
+  }
+
+  // Location
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -187,7 +363,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _showFullAddressForm(String postalCode) async {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     final address1Controller = TextEditingController();
     final address2Controller = TextEditingController();
     final areaController = TextEditingController();
@@ -200,7 +376,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           (context) => AlertDialog(
             title: const Text("Enter Delivery Details"),
             content: Form(
-              key: _formKey,
+              key: formKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -261,7 +437,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  if (_formKey.currentState!.validate()) {
+                  if (formKey.currentState!.validate()) {
                     setState(() {
                       _deliveryLocation =
                           "${address1Controller.text}, ${address2Controller.text}, ${areaController.text}, Gonda, Uttar Pradesh - $postalCode";
@@ -276,9 +452,76 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  Widget buildDeliveryLocationCard({
+    required BuildContext context,
+    required String? deliveryLocation,
+    required VoidCallback onChangePressed,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Deliver to:",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  deliveryLocation ?? "No location selected",
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: onChangePressed,
+            label: const Text(
+              "Change",
+              style: TextStyle(color: Colors.blueAccent),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              elevation: 1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              textStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Delivery Date & Time
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
-
   List<String> _generateTimeSlotsForDate(DateTime selectedDate) {
     final now = DateTime.now();
     final slots = <String>[];
@@ -290,7 +533,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         selectedDate.day,
         hour,
       );
-      final slotEnd = slotStart.add(const Duration(hours: 1));
 
       final label = "${_formatTime(hour)} – ${_formatTime(hour + 1)}";
 
@@ -314,9 +556,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildDeliveryDateTimePicker() {
-    final timeSlots =
-        _selectedDate != null ? _generateTimeSlotsForDate(_selectedDate!) : [];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -450,41 +689,236 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-
+  // Messages
   String? _cakeMessage;
-  String? _cardMessage;
+  Widget _buildMessageSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Add Messages",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 10),
 
+        // 🎂 Cake Message Button
+        ElevatedButton.icon(
+          icon: const Icon(Icons.cake),
+          label: Text(
+            _cakeMessage != null ? "Edit Cake Message" : "Message on Cake",
+          ),
+          onPressed: _showCakeMessageDialog,
+        ),
+
+        // 🎂 Cake Message Summary Box
+        if (_cakeMessage != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("🎂 ", style: TextStyle(fontSize: 16)),
+                Expanded(
+                  child: Text(
+                    "Cake Message: $_cakeMessage",
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 8),
+
+        // 📝 Free Message Card Button
+        ElevatedButton.icon(
+          icon: const Icon(Icons.card_giftcard),
+          label: const Text("Add Free Message Card"),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FreeMessageCardPage()),
+            );
+
+            if (result != null && result is Map<String, dynamic>) {
+              setState(() {
+                selectedCardData = result;
+              });
+            }
+          },
+        ),
+
+        const SizedBox(height: 12),
+
+        // 📝 Free Message Card Summary Box
+        if (selectedCardData != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Occasion: ${selectedCardData!['occasion']}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Message: ${selectedCardData!['message'].toString().length > 40 ? "${selectedCardData!['message'].toString().substring(0, 40)}..." : selectedCardData!['message']}",
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  int? expandedTileIndex;
+  final List<Map<String, dynamic>> tiles = [
+    {
+      "title": "Product Description",
+      "icon": Icons.assignment,
+      "content":
+          "This delicious handcrafted cake is made with high-quality ingredients and designed to make every celebration special.",
+    },
+    {
+      "title": "Care Instructions",
+      "icon": Icons.insert_chart,
+      "content":
+          "Store in a cool, dry place. Keep away from direct sunlight. Consume within 24 hours for best taste.",
+    },
+    {
+      "title": "Delivery Information",
+      "icon": Icons.local_shipping,
+      "content": '''
+• Every cake we offer is handcrafted and since each chef has their own way of baking and designing a cake, there might be slight variation in the product.
+
+• Delivery time is an estimate and depends on availability and location.
+
+• Since cakes are perishable, we attempt delivery only once.
+
+• This product is hand delivered and not sent via courier.
+
+• Occasionally, substitutions of flavours/designs are made due to regional issues.''',
+    },
+  ];
   void _showCakeMessageDialog() {
-    TextEditingController controller = TextEditingController(text: _cakeMessage);
+    TextEditingController controller = TextEditingController(
+      text: _cakeMessage,
+    );
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Message on Cake"),
-        content: TextField(
-          controller: controller,
-          maxLength: 30,
-          decoration: const InputDecoration(
-            hintText: "Enter message (max 30 chars)",
-            border: OutlineInputBorder(),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Message on Cake"),
+            content: TextField(
+              controller: controller,
+              maxLength: 30,
+              decoration: const InputDecoration(
+                hintText: "Enter message (max 30 chars)",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _cakeMessage = controller.text.trim());
+                  Navigator.pop(context);
+                },
+                child: const Text("Save"),
+              ),
+            ],
           ),
+    );
+  }
+
+  Widget buildExpansionTile(String title, String content) {
+    return ExpansionTile(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0, right: 16, bottom: 10),
+          child: Text(content),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+      ],
+    );
+  }
+
+  Widget buildAboutExpandableTilesSection() {
+    return Container(
+      color: const Color(0xFFF9F9F4),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              "About the product",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _cakeMessage = controller.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
-          ),
+          ...List.generate(tiles.length, (index) {
+            final tile = tiles[index];
+            final isExpanded = expandedTileIndex == index;
+
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    leading: Icon(tile["icon"], color: Colors.green.shade800),
+                    title: Text(
+                      tile["title"],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    trailing: Icon(isExpanded ? Icons.close : Icons.add),
+                    onTap: () {
+                      setState(() {
+                        expandedTileIndex = isExpanded ? null : index;
+                      });
+                    },
+                  ),
+                  if (isExpanded)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        tile["content"],
+                        style: const TextStyle(height: 1.5),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
   }
-
 
   @override
   void initState() {
@@ -601,145 +1035,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // Product name and pricing
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  _buildProductPriceRow(
+                    name: name,
+                    price: price,
+                    oldPrice: oldPrice,
                   ),
-                  const SizedBox(height: 4),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            "₹$price",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          if (oldPrice != null)
-                            Text(
-                              "₹$oldPrice",
-                              style: const TextStyle(
-                                decoration: TextDecoration.lineThrough,
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          const SizedBox(width: 10),
-                          if (oldPrice != null)
-                            Text(
-                              '${(((oldPrice - price) / oldPrice) * 100).round()}% OFF',
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontSize: 14,
-                              ),
-                            ),
-                        ],
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          alignment: Alignment.centerLeft,
-                        ),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20),
-                              ),
-                            ),
-                            builder: (context) {
-                              final int savings =
-                                  (oldPrice != null)
-                                      ? (oldPrice - price).round()
-                                      : 0;
-                              final int discountPercent =
-                                  oldPrice != null && oldPrice > 0
-                                      ? ((savings / oldPrice) * 100).round()
-                                      : 0;
 
-                              return Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Center(
-                                      child: Icon(
-                                        Icons.remove,
-                                        size: 32,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      "Price Details",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Divider(),
-                                    ListTile(
-                                      title: const Text("Maximum Retail Price"),
-                                      subtitle: const Text(
-                                        "(Inclusive of all taxes)",
-                                      ),
-                                      trailing: Text(
-                                        "₹${oldPrice?.toInt() ?? price.toInt()}",
-                                        style: const TextStyle(
-                                          decoration:
-                                              TextDecoration.lineThrough,
-                                        ),
-                                      ),
-                                    ),
-                                    ListTile(
-                                      title: const Text("Selling Price"),
-                                      trailing: Text(
-                                        "₹${price.toInt()}",
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    const Divider(),
-                                    if (oldPrice != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 4,
-                                          bottom: 12,
-                                        ),
-                                        child: Text(
-                                          "You save ₹$savings ($discountPercent%) on this product",
-                                          style: const TextStyle(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        },
-                        child: const Text(
-                          "Price inclusive of all taxes >",
-                          style: TextStyle(fontSize: 12, color: Colors.black54),
-                        ),
-                      ),
-                    ],
+                  //  Price inclusive
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      alignment: Alignment.centerLeft,
+                    ),
+                    onPressed: () {
+                      showPriceDetailsBottomSheet(
+                        context: context,
+                        price: price,
+                        oldPrice: oldPrice,
+                      );
+                    },
+                    child: const Text(
+                      "Price inclusive of all taxes >",
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -751,264 +1072,70 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 10),
 
                   // Variant Selector
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children:
-                          variants.asMap().entries.map((entry) {
-                            final int index = entry.key;
-                            final variant = entry.value;
-                            final bool isSelected =
-                                index == selectedVariantIndex;
-
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedVariantIndex = index;
-                                });
-                              },
-                              child: Container(
-                                width: 100,
-                                height: 150,
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color:
-                                        isSelected ? Colors.red : Colors.grey,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                  color:
-                                      isSelected
-                                          ? Colors.red.shade50
-                                          : Colors.white,
-                                ),
-                                child: Column(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        variant['image'] ?? imageUrls.first,
-                                        height: 90,
-                                        width: 90,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (_, __, ___) =>
-                                                const Icon(Icons.broken_image),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text('${variant['weight']}'),
-                                    Text(
-                                      '₹${variant['price']}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                    ),
+                  _buildVariantSelector(
+                    variants: variants,
+                    selectedIndex: selectedVariantIndex,
+                    onVariantSelected: (index) {
+                      setState(() {
+                        selectedVariantIndex = index;
+                      });
+                    },
+                    imageUrls: imageUrls,
                   ),
                   const SizedBox(height: 20),
 
                   // Delivery Location
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Deliver to:",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _deliveryLocation ?? "No location selected",
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () => _showLocationOptions(context),
-                          label: const Text(
-                            "Change",
-                            style: TextStyle(color: Colors.blueAccent),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white, // Deep purple
-                            elevation: 1,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  buildDeliveryLocationCard(
+                    context: context,
+                    deliveryLocation: _deliveryLocation,
+                    onChangePressed: () => _showLocationOptions(context),
                   ),
 
+                  // Delivery date & time
                   _buildDeliveryDateTimePicker(),
                   const SizedBox(height: 20),
 
-                  const Text(
-                    "Add Messages",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.cake),
-                    label: Text(_cakeMessage != null ? "Edit Cake Message" : "Message on Cake"),
-                    onPressed: _showCakeMessageDialog,
-                  ),
-                  if (_cakeMessage != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("🎂 ", style: TextStyle(fontSize: 16)),
-                          Expanded(
-                            child: Text(
-                              "Cake Message: $_cakeMessage",
-                              style: const TextStyle(color: Colors.black87),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.card_giftcard),
-                    label: const Text("Add Free Message Card"),
-                    onPressed: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const FreeMessageCardPage()),
-                      );
-
-                      if (result != null && result is Map<String, dynamic>) {
-                        setState(() {
-                          selectedCardData = result;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 👇 Show summary after returning
-                  if (selectedCardData != null)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.green.shade200),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Occasion: ${selectedCardData!['occasion']}",
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Message: ${selectedCardData!['message'].toString().length > 40
-                                ? selectedCardData!['message'].toString().substring(0, 40) + "..."
-                                : selectedCardData!['message']}",
-                            style: const TextStyle(color: Colors.black87),
-                          ),
-                        ],
-                      ),
-                    ),
-
+                  // Cake Message & Card Message
+                  _buildMessageSection(context),
                   const SizedBox(height: 20),
-                  buildExpansionTile(
-                    "Product Description",
-                    product['description'] ?? "No description.",
-                  ),
-                  buildExpansionTile(
-                    "Care Instructions",
-                    "Keep cake refrigerated. Do not freeze.",
-                  ),
-                  buildExpansionTile(
-                    "Delivery Information",
-                    "Delivered with care at the mentioned location.",
-                  ),
+
+                  // About the product
+                  buildAboutExpandableTilesSection(),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green.shade700,
-          ),
-          onPressed: () {},
-          child: const Text(
-            "View Available Gifts",
-            style: TextStyle(fontSize: 18),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 20),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white70,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            onPressed: () {
+              // Add to cart logic
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.shopping_cart),
+                SizedBox(width: 10),
+                const Text(
+                  "Add to Cart",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget buildExpansionTile(String title, String content) {
-    return ExpansionTile(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16.0, right: 16, bottom: 10),
-          child: Text(content),
-        ),
-      ],
     );
   }
 }
