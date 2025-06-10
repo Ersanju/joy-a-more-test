@@ -17,6 +17,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late PageController _pageController;
   Timer? _autoScrollTimer;
   String? _deliveryLocation = "Detecting location...";
+  int selectedVariantIndex = 0;
 
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -313,10 +314,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final variants = List<Map<String, dynamic>>.from(
       product['extraAttributes']?['variants'] ?? [],
     );
-    final defaultVariant = product['extraAttributes']?['defaultVariant'] ?? {};
     final name = product['name'] ?? '';
-    final oldPrice = defaultVariant['oldPrice'];
-    final price = defaultVariant['price'];
+    final selectedVariant = variants[selectedVariantIndex];
+    final double price = (selectedVariant['price'] as num).toDouble();
+    final double? oldPrice =
+        selectedVariant['oldPrice'] != null
+            ? (selectedVariant['oldPrice'] as num).toDouble()
+            : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -394,6 +398,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                   ),
                   const SizedBox(height: 4),
+
+                  // Price & Tax Info
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -430,7 +436,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       TextButton(
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
-                          minimumSize: Size(0, 0),
+                          minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           alignment: Alignment.centerLeft,
                         ),
@@ -443,17 +449,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               ),
                             ),
                             builder: (context) {
-                              final double priceVal = (price as num).toDouble();
-                              final double oldPriceVal =
-                                  (oldPrice ?? price) is num
-                                      ? ((oldPrice ?? price) as num).toDouble()
-                                      : 0.0;
-
                               final int savings =
-                                  (oldPriceVal - priceVal).round();
+                                  (oldPrice != null)
+                                      ? (oldPrice - price).round()
+                                      : 0;
                               final int discountPercent =
-                                  oldPriceVal > 0
-                                      ? ((savings / oldPriceVal) * 100).round()
+                                  oldPrice != null && oldPrice > 0
+                                      ? ((savings / oldPrice) * 100).round()
                                       : 0;
 
                               return Padding(
@@ -484,7 +486,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                         "(Inclusive of all taxes)",
                                       ),
                                       trailing: Text(
-                                        "₹${oldPriceVal.toInt()}",
+                                        "₹${oldPrice?.toInt() ?? price.toInt()}",
                                         style: const TextStyle(
                                           decoration:
                                               TextDecoration.lineThrough,
@@ -494,26 +496,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                     ListTile(
                                       title: const Text("Selling Price"),
                                       trailing: Text(
-                                        "₹${priceVal.toInt()}",
+                                        "₹${price.toInt()}",
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
                                     const Divider(),
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 4,
-                                        bottom: 12,
-                                      ),
-                                      child: Text(
-                                        "You save ₹$savings ($discountPercent%) on this product",
-                                        style: const TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.bold,
+                                    if (oldPrice != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4,
+                                          bottom: 12,
+                                        ),
+                                        child: Text(
+                                          "You save ₹$savings ($discountPercent%) on this product",
+                                          style: const TextStyle(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
-                                    ),
                                   ],
                                 ),
                               );
@@ -535,44 +538,64 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Variants
+                  // Variant Selector
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children:
-                          variants.map((variant) {
-                            return Container(
-                              width: 100,
-                              height: 150,
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      variant['image'] ?? imageUrls.first,
-                                      height: 90,
-                                      width: 90,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (_, __, ___) =>
-                                              const Icon(Icons.broken_image),
-                                    ),
+                          variants.asMap().entries.map((entry) {
+                            final int index = entry.key;
+                            final variant = entry.value;
+                            final bool isSelected =
+                                index == selectedVariantIndex;
+
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedVariantIndex = index;
+                                });
+                              },
+                              child: Container(
+                                width: 100,
+                                height: 150,
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color:
+                                        isSelected ? Colors.red : Colors.grey,
+                                    width: 2,
                                   ),
-                                  const SizedBox(height: 5),
-                                  Text('${variant['weight']}'),
-                                  Text(
-                                    '₹${variant['price']}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                  borderRadius: BorderRadius.circular(10),
+                                  color:
+                                      isSelected
+                                          ? Colors.red.shade50
+                                          : Colors.white,
+                                ),
+                                child: Column(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        variant['image'] ?? imageUrls.first,
+                                        height: 90,
+                                        width: 90,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (_, __, ___) =>
+                                                const Icon(Icons.broken_image),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 5),
+                                    Text('${variant['weight']}'),
+                                    Text(
+                                      '₹${variant['price']}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           }).toList(),
