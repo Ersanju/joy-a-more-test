@@ -187,7 +187,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _showFullAddressForm(String postalCode) async {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
     final address1Controller = TextEditingController();
     final address2Controller = TextEditingController();
     final areaController = TextEditingController();
@@ -200,7 +200,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           (context) => AlertDialog(
             title: const Text("Enter Delivery Details"),
             content: Form(
-              key: _formKey,
+              key: formKey,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -261,7 +261,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  if (_formKey.currentState!.validate()) {
+                  if (formKey.currentState!.validate()) {
                     setState(() {
                       _deliveryLocation =
                           "${address1Controller.text}, ${address2Controller.text}, ${areaController.text}, Gonda, Uttar Pradesh - $postalCode";
@@ -290,7 +290,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         selectedDate.day,
         hour,
       );
-      final slotEnd = slotStart.add(const Duration(hours: 1));
 
       final label = "${_formatTime(hour)} – ${_formatTime(hour + 1)}";
 
@@ -314,9 +313,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildDeliveryDateTimePicker() {
-    final timeSlots =
-        _selectedDate != null ? _generateTimeSlotsForDate(_selectedDate!) : [];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -450,41 +446,72 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-
   String? _cakeMessage;
-  String? _cardMessage;
+
+  int? expandedTileIndex;
+
+  final List<Map<String, dynamic>> tiles = [
+    {
+      "title": "Product Description",
+      "icon": Icons.assignment,
+      "content":
+          "This delicious handcrafted cake is made with high-quality ingredients and designed to make every celebration special.",
+    },
+    {
+      "title": "Care Instructions",
+      "icon": Icons.insert_chart,
+      "content":
+          "Store in a cool, dry place. Keep away from direct sunlight. Consume within 24 hours for best taste.",
+    },
+    {
+      "title": "Delivery Information",
+      "icon": Icons.local_shipping,
+      "content": '''
+• Every cake we offer is handcrafted and since each chef has their own way of baking and designing a cake, there might be slight variation in the product.
+
+• Delivery time is an estimate and depends on availability and location.
+
+• Since cakes are perishable, we attempt delivery only once.
+
+• This product is hand delivered and not sent via courier.
+
+• Occasionally, substitutions of flavours/designs are made due to regional issues.''',
+    },
+  ];
 
   void _showCakeMessageDialog() {
-    TextEditingController controller = TextEditingController(text: _cakeMessage);
+    TextEditingController controller = TextEditingController(
+      text: _cakeMessage,
+    );
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Message on Cake"),
-        content: TextField(
-          controller: controller,
-          maxLength: 30,
-          decoration: const InputDecoration(
-            hintText: "Enter message (max 30 chars)",
-            border: OutlineInputBorder(),
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Message on Cake"),
+            content: TextField(
+              controller: controller,
+              maxLength: 30,
+              decoration: const InputDecoration(
+                hintText: "Enter message (max 30 chars)",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _cakeMessage = controller.text.trim());
+                  Navigator.pop(context);
+                },
+                child: const Text("Save"),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _cakeMessage = controller.text.trim());
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
     );
   }
-
 
   @override
   void initState() {
@@ -601,7 +628,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // Product name and pricing
                   Text(
                     name,
@@ -893,7 +919,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.cake),
-                    label: Text(_cakeMessage != null ? "Edit Cake Message" : "Message on Cake"),
+                    label: Text(
+                      _cakeMessage != null
+                          ? "Edit Cake Message"
+                          : "Message on Cake",
+                    ),
                     onPressed: _showCakeMessageDialog,
                   ),
                   if (_cakeMessage != null) ...[
@@ -926,7 +956,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     onPressed: () async {
                       final result = await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const FreeMessageCardPage()),
+                        MaterialPageRoute(
+                          builder: (_) => const FreeMessageCardPage(),
+                        ),
                       );
 
                       if (result != null && result is Map<String, dynamic>) {
@@ -956,9 +988,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Message: ${selectedCardData!['message'].toString().length > 40
-                                ? selectedCardData!['message'].toString().substring(0, 40) + "..."
-                                : selectedCardData!['message']}",
+                            "Message: ${selectedCardData!['message'].toString().length > 40 ? "${selectedCardData!['message'].toString().substring(0, 40)}..." : selectedCardData!['message']}",
                             style: const TextStyle(color: Colors.black87),
                           ),
                         ],
@@ -966,17 +996,81 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
 
                   const SizedBox(height: 20),
-                  buildExpansionTile(
-                    "Product Description",
-                    product['description'] ?? "No description.",
-                  ),
-                  buildExpansionTile(
-                    "Care Instructions",
-                    "Keep cake refrigerated. Do not freeze.",
-                  ),
-                  buildExpansionTile(
-                    "Delivery Information",
-                    "Delivered with care at the mentioned location.",
+                  Container(
+                    color: const Color(0xFFF9F9F4),
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Text(
+                            "About the product",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        ...List.generate(tiles.length, (index) {
+                          final tile = tiles[index];
+                          final isExpanded = expandedTileIndex == index;
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              children: [
+                                ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  leading: Icon(
+                                    tile["icon"],
+                                    color: Colors.green.shade800,
+                                  ),
+                                  title: Text(
+                                    tile["title"],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  trailing: Icon(
+                                    isExpanded ? Icons.close : Icons.add,
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      expandedTileIndex =
+                                          isExpanded ? null : index;
+                                    });
+                                  },
+                                ),
+                                if (isExpanded)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      tile["content"],
+                                      style: const TextStyle(height: 1.5),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
                   ),
                 ],
               ),
