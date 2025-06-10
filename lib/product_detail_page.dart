@@ -274,6 +274,180 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  DateTime? _selectedDate;
+  String? _selectedTimeSlot;
+
+  List<String> _generateTimeSlotsForDate(DateTime selectedDate) {
+    final now = DateTime.now();
+    final slots = <String>[];
+
+    for (int hour = 10; hour < 22; hour++) {
+      final slotStart = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        hour,
+      );
+      final slotEnd = slotStart.add(const Duration(hours: 1));
+
+      final label = "${_formatTime(hour)} – ${_formatTime(hour + 1)}";
+
+      // Enforce 2-hour future rule if slot is today
+      if (slotStart.isAfter(now.add(const Duration(hours: 2)))) {
+        slots.add(label);
+      } else if (selectedDate.day != now.day ||
+          selectedDate.month != now.month ||
+          selectedDate.year != now.year) {
+        slots.add(label);
+      }
+    }
+
+    return slots;
+  }
+
+  String _formatTime(int hour) {
+    final h = hour > 12 ? hour - 12 : hour;
+    final suffix = hour >= 12 ? "PM" : "AM";
+    return "${h.toString().padLeft(2, '0')}:00 $suffix";
+  }
+
+  Widget _buildDeliveryDateTimePicker() {
+    final timeSlots =
+        _selectedDate != null ? _generateTimeSlotsForDate(_selectedDate!) : [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        const Text(
+          "Select Delivery Date & Time",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            // Date Picker
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  DateTime now = DateTime.now();
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: now,
+                    firstDate: now,
+                    lastDate: now.add(const Duration(days: 30)),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDate = picked;
+                      _selectedTimeSlot = null;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.date_range),
+                label: Text(
+                  _selectedDate != null
+                      ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
+                      : "Pick Date",
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Time Slot Dropdown
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  if (_selectedDate == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please select a date first"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  List<String> slots = _generateTimeSlotsForDate(
+                    _selectedDate!,
+                  );
+                  String? selected = await showModalBottomSheet<String>(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder:
+                        (context) => ListView(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(16),
+                          children:
+                              slots.map((slot) {
+                                return ListTile(
+                                  title: Text(slot),
+                                  onTap: () => Navigator.pop(context, slot),
+                                );
+                              }).toList(),
+                        ),
+                  );
+
+                  if (selected != null) {
+                    setState(() => _selectedTimeSlot = selected);
+                  }
+                },
+                icon: const Icon(Icons.access_time),
+                label: Text(
+                  _selectedTimeSlot ?? "Pick Time Slot",
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // Confirmation message
+        if (_selectedDate != null && _selectedTimeSlot != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              "Selected: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year} • $_selectedTimeSlot",
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -671,7 +845,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ],
                     ),
                   ),
-
+                  _buildDeliveryDateTimePicker(),
                   const SizedBox(height: 20),
                   const Text(
                     "Add Messages",
