@@ -242,9 +242,26 @@ class _AddProductPageState extends State<AddProductPage> {
     final product = Product(
       id: productId,
       name: name,
-      productDescription: _productDescController.text.trim(),
-      careInstruction: _careInstrucController.text.trim(),
-      deliveryInformation: _deliveryInfoController.text.trim(),
+      productDescription:
+          _productDescController.text
+              .trim()
+              .split('\n')
+              .where((e) => e.trim().isNotEmpty)
+              .toList(),
+
+      careInstruction:
+          _careInstrucController.text
+              .trim()
+              .split('\n')
+              .where((e) => e.trim().isNotEmpty)
+              .toList(),
+
+      deliveryInformation:
+          _deliveryInfoController.text
+              .trim()
+              .split('\n')
+              .where((e) => e.trim().isNotEmpty)
+              .toList(),
       categoryId: _categoryIdController.text.trim(),
       imageUrls:
           _imageUrlsController.text
@@ -332,12 +349,13 @@ class _AddProductPageState extends State<AddProductPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _productDescController,
-                        minLines:
-                        4, // 👈 Initial height (you can increase to 5 or 6 if needed)
-                        maxLines:
-                        8, // 👈 Allows it to grow vertically as needed
+                        minLines: 4,
+                        maxLines: 10,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
                         decoration: const InputDecoration(
                           labelText: 'Product Description',
+                          hintText: 'Enter bullet points...',
                           labelStyle: TextStyle(fontWeight: FontWeight.normal),
                           floatingLabelStyle: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -353,8 +371,14 @@ class _AddProductPageState extends State<AddProductPage> {
                           if (val == null || val.trim().isEmpty) {
                             return 'Required';
                           }
-                          if (val.trim().length < 10) {
-                            return 'At least 10 characters required';
+                          final lines =
+                              val
+                                  .trim()
+                                  .split('\n')
+                                  .where((line) => line.trim().isNotEmpty)
+                                  .toList();
+                          if (lines.length < 2) {
+                            return 'Enter at least 2 bullet points';
                           }
                           return null;
                         },
@@ -362,12 +386,13 @@ class _AddProductPageState extends State<AddProductPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _careInstrucController,
-                        minLines:
-                        4, // 👈 Initial height (you can increase to 5 or 6 if needed)
-                        maxLines:
-                        8, // 👈 Allows it to grow vertically as needed
+                        minLines: 4,
+                        maxLines: 10,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
                         decoration: const InputDecoration(
-                          labelText: 'Care Instruction',
+                          labelText: 'Care Instructions',
+                          hintText: 'Enter bullet points...',
                           labelStyle: TextStyle(fontWeight: FontWeight.normal),
                           floatingLabelStyle: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -383,8 +408,14 @@ class _AddProductPageState extends State<AddProductPage> {
                           if (val == null || val.trim().isEmpty) {
                             return 'Required';
                           }
-                          if (val.trim().length < 10) {
-                            return 'At least 10 characters required';
+                          final lines =
+                              val
+                                  .trim()
+                                  .split('\n')
+                                  .where((line) => line.trim().isNotEmpty)
+                                  .toList();
+                          if (lines.length < 2) {
+                            return 'Enter at least 2 bullet points';
                           }
                           return null;
                         },
@@ -392,12 +423,13 @@ class _AddProductPageState extends State<AddProductPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _deliveryInfoController,
-                        minLines:
-                        4, // 👈 Initial height (you can increase to 5 or 6 if needed)
-                        maxLines:
-                        8, // 👈 Allows it to grow vertically as needed
+                        minLines: 4,
+                        maxLines: 10,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
                         decoration: const InputDecoration(
                           labelText: 'Delivery Information',
+                          hintText: 'Enter bullet points...',
                           labelStyle: TextStyle(fontWeight: FontWeight.normal),
                           floatingLabelStyle: TextStyle(
                             fontWeight: FontWeight.bold,
@@ -413,8 +445,14 @@ class _AddProductPageState extends State<AddProductPage> {
                           if (val == null || val.trim().isEmpty) {
                             return 'Required';
                           }
-                          if (val.trim().length < 10) {
-                            return 'At least 10 characters required';
+                          final lines =
+                              val
+                                  .trim()
+                                  .split('\n')
+                                  .where((line) => line.trim().isNotEmpty)
+                                  .toList();
+                          if (lines.length < 2) {
+                            return 'Enter at least 2 bullet points';
                           }
                           return null;
                         },

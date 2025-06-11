@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Product {
   final String id;
   final String name;
-  final String productDescription;
-  final String careInstruction;
-  final String deliveryInformation;
+  final List<String> productDescription;
+  final List<String> careInstruction;
+  final List<String> deliveryInformation;
   final String categoryId;
   final List<String> imageUrls;
   final bool isAvailable;
@@ -36,9 +36,9 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'],
     name: json['name'],
-    productDescription: json['productDescription'],
-    careInstruction: json['careInstruction'] ?? '',
-    deliveryInformation: json['deliveryInformation'] ?? '',
+    productDescription: List<String>.from(json['productDescription'] ?? []),
+    careInstruction: List<String>.from(json['careInstruction'] ?? []),
+    deliveryInformation: List<String>.from(json['deliveryInformation'] ?? []),
     categoryId: json['categoryId'],
     imageUrls: List<String>.from(json['imageUrls'] ?? []),
     isAvailable: json['isAvailable'] ?? true,
@@ -47,14 +47,14 @@ class Product {
     tags: List<String>.from(json['tags'] ?? []),
     popularityScore: json['popularityScore'] ?? 0,
     reviews:
-    (json['reviews'] as List<dynamic>?)
-        ?.map((e) => Review.fromJson(e))
-        .toList() ??
+        (json['reviews'] as List<dynamic>?)
+            ?.map((e) => Review.fromJson(e))
+            .toList() ??
         [],
     extraAttributes:
-    json['extraAttributes'] != null
-        ? ExtraAttributes.fromJson(json['extraAttributes'])
-        : null,
+        json['extraAttributes'] != null
+            ? ExtraAttributes.fromJson(json['extraAttributes'])
+            : null,
   );
 
   Map<String, dynamic> toJson() => {
@@ -90,7 +90,7 @@ class ExtraAttributes {
       ExtraAttributes(
         defaultVariant: Variant.fromJson(json['defaultVariant']),
         variants:
-        (json['variants'] as List).map((e) => Variant.fromJson(e)).toList(),
+            (json['variants'] as List).map((e) => Variant.fromJson(e)).toList(),
         shapes: (json['shapes'] as List).map((e) => Shape.fromJson(e)).toList(),
       );
 
@@ -123,9 +123,9 @@ class Variant {
     tier: json['tier'],
     price: (json['price'] as num).toDouble(),
     oldPrice:
-    json['oldPrice'] != null ? (json['oldPrice'] as num).toDouble() : null,
+        json['oldPrice'] != null ? (json['oldPrice'] as num).toDouble() : null,
     discount:
-    json['discount'] != null ? (json['discount'] as num).toDouble() : null,
+        json['discount'] != null ? (json['discount'] as num).toDouble() : null,
     sku: json['sku'],
   );
 

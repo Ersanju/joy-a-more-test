@@ -787,35 +787,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  int? expandedTileIndex;
-  final List<Map<String, dynamic>> tiles = [
-    {
-      "title": "Product Description",
-      "icon": Icons.assignment,
-      "content":
-          "This delicious handcrafted cake is made with high-quality ingredients and designed to make every celebration special.",
-    },
-    {
-      "title": "Care Instructions",
-      "icon": Icons.insert_chart,
-      "content":
-          "Store in a cool, dry place. Keep away from direct sunlight. Consume within 24 hours for best taste.",
-    },
-    {
-      "title": "Delivery Information",
-      "icon": Icons.local_shipping,
-      "content": '''
-• Every cake we offer is handcrafted and since each chef has their own way of baking and designing a cake, there might be slight variation in the product.
-
-• Delivery time is an estimate and depends on availability and location.
-
-• Since cakes are perishable, we attempt delivery only once.
-
-• This product is hand delivered and not sent via courier.
-
-• Occasionally, substitutions of flavours/designs are made due to regional issues.''',
-    },
-  ];
   void _showCakeMessageDialog() {
     TextEditingController controller = TextEditingController(
       text: _cakeMessage,
@@ -851,7 +822,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   // About the products
-  Widget buildAboutExpandableTilesSection() {
+  int? expandedTileIndex;
+  Widget buildAboutExpandableTilesSection(Map<String, dynamic> product) {
+    // Safely extract list fields or fallback to an empty list
+    final List<String> productDescription = List<String>.from(
+      product['productDescription'] ?? [],
+    );
+    final List<String> careInstruction = List<String>.from(
+      product['careInstruction'] ?? [],
+    );
+    final List<String> deliveryInformation = List<String>.from(
+      product['deliveryInformation'] ?? [],
+    );
+
+    final List<Map<String, dynamic>> dynamicTiles = [
+      {
+        "title": "Product Description",
+        "icon": Icons.assignment,
+        "content": productDescription,
+      },
+      {
+        "title": "Care Instructions",
+        "icon": Icons.insert_chart,
+        "content": careInstruction,
+      },
+      {
+        "title": "Delivery Information",
+        "icon": Icons.local_shipping,
+        "content": deliveryInformation,
+      },
+    ];
+
     return Container(
       color: const Color(0xFFF9F9F4),
       padding: const EdgeInsets.only(bottom: 16),
@@ -865,8 +866,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
-          ...List.generate(tiles.length, (index) {
-            final tile = tiles[index];
+          ...List.generate(dynamicTiles.length, (index) {
+            final tile = dynamicTiles[index];
             final isExpanded = expandedTileIndex == index;
 
             return Container(
@@ -886,9 +887,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     trailing: Icon(isExpanded ? Icons.close : Icons.add),
                     onTap: () {
-                      setState(() {
-                        expandedTileIndex = isExpanded ? null : index;
-                      });
+                      expandedTileIndex = isExpanded ? null : index;
+                      // Use StatefulBuilder or make expandedTileIndex a State variable
+                      (this as dynamic).setState(() {});
                     },
                   ),
                   if (isExpanded)
@@ -897,9 +898,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         horizontal: 16,
                         vertical: 8,
                       ),
-                      child: Text(
-                        tile["content"],
-                        style: const TextStyle(height: 1.5),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children:
+                            (tile["content"] as List<String>).map((line) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "• ",
+                                      style: TextStyle(height: 1.5),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        line,
+                                        style: const TextStyle(height: 1.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                       ),
                     ),
                 ],
@@ -915,10 +936,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late Future<List<Review>> _reviewsFuture;
 
   Future<List<Review>> fetchProductReviews(String productId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .get();
 
     if (!doc.exists) return [];
 
@@ -932,6 +954,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // sort newest first
   }
+
   Widget buildReviewSlider(List<Review> reviews) {
     if (reviews.isEmpty) {
       return const Text("No reviews yet.");
@@ -971,7 +994,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Row(
                   children: List.generate(
                     5,
-                        (i) => Icon(
+                    (i) => Icon(
                       i < review.rating.round()
                           ? Icons.star
                           : Icons.star_border,
@@ -1003,8 +1026,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-
-
   String timeAgo(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
@@ -1013,8 +1034,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     if (diff.inMinutes >= 1) return '${diff.inMinutes}m ago';
     return 'Just now';
   }
-
-
 
   @override
   void initState() {
@@ -1197,7 +1216,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 20),
 
                   // About the product
-                  buildAboutExpandableTilesSection(),
+                  buildAboutExpandableTilesSection(widget.product),
 
                   // Product reviews
                   Padding(
@@ -1207,14 +1226,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       children: [
                         const Text(
                           "Customer Reviews",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         FutureBuilder<List<Review>>(
                           future: _reviewsFuture,
                           builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(child: CircularProgressIndicator());
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
                             }
                             if (snapshot.hasError) {
                               return const Text("Failed to load reviews");
@@ -1224,9 +1249,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       ],
                     ),
-                  )
-
-
+                  ),
                 ],
               ),
             ),
