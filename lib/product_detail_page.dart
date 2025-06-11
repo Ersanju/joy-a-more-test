@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:joy_a_more_test/product_model.dart';
 
 import 'free_message_card_page.dart';
 
@@ -848,18 +850,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  Widget buildExpansionTile(String title, String content) {
-    return ExpansionTile(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16.0, right: 16, bottom: 10),
-          child: Text(content),
-        ),
-      ],
-    );
-  }
-
+  // About the products
   Widget buildAboutExpandableTilesSection() {
     return Container(
       color: const Color(0xFFF9F9F4),
@@ -920,12 +911,118 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  // Product reviews
+  late Future<List<Review>> _reviewsFuture;
+
+  Future<List<Review>> fetchProductReviews(String productId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
+        .get();
+
+    if (!doc.exists) return [];
+
+    final data = doc.data();
+    if (data == null || data['reviews'] == null) return [];
+
+    final List<dynamic> reviewList = data['reviews'];
+
+    return reviewList
+        .map((item) => Review.fromJson(item as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // sort newest first
+  }
+  Widget buildReviewSlider(List<Review> reviews) {
+    if (reviews.isEmpty) {
+      return const Text("No reviews yet.");
+    }
+
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: reviews.length,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final review = reviews[index];
+          return Container(
+            width: 260,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  review.userName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(
+                    5,
+                        (i) => Icon(
+                      i < review.rating.round()
+                          ? Icons.star
+                          : Icons.star_border,
+                      size: 16,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  review.comment,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Spacer(),
+                Text(
+                  "${review.occasion} • ${review.place}",
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+                Text(
+                  "${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}",
+                  style: const TextStyle(fontSize: 12, color: Colors.black38),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+
+
+  String timeAgo(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inDays >= 1) return '${diff.inDays}d ago';
+    if (diff.inHours >= 1) return '${diff.inHours}h ago';
+    if (diff.inMinutes >= 1) return '${diff.inMinutes}m ago';
+    return 'Just now';
+  }
+
+
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _startAutoScroll();
     _getCurrentLocation();
+    _reviewsFuture = fetchProductReviews(widget.product['id']);
   }
 
   void _startAutoScroll() {
@@ -1101,6 +1198,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                   // About the product
                   buildAboutExpandableTilesSection(),
+
+                  // Product reviews
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Customer Reviews",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        FutureBuilder<List<Review>>(
+                          future: _reviewsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            if (snapshot.hasError) {
+                              return const Text("Failed to load reviews");
+                            }
+                            return buildReviewSlider(snapshot.data ?? []);
+                          },
+                        ),
+                      ],
+                    ),
+                  )
+
+
                 ],
               ),
             ),

@@ -15,7 +15,9 @@ class _AddProductPageState extends State<AddProductPage> {
   final _uuid = const Uuid();
 
   final _nameController = TextEditingController();
-  final _descController = TextEditingController();
+  final _productDescController = TextEditingController();
+  final _careInstrucController = TextEditingController();
+  final _deliveryInfoController = TextEditingController();
   final _categoryIdController = TextEditingController();
   final _imageUrlsController = TextEditingController();
   final _stockQtyController = TextEditingController();
@@ -240,7 +242,9 @@ class _AddProductPageState extends State<AddProductPage> {
     final product = Product(
       id: productId,
       name: name,
-      description: _descController.text.trim(),
+      productDescription: _productDescController.text.trim(),
+      careInstruction: _careInstrucController.text.trim(),
+      deliveryInformation: _deliveryInfoController.text.trim(),
       categoryId: _categoryIdController.text.trim(),
       imageUrls:
           _imageUrlsController.text
@@ -327,13 +331,73 @@ class _AddProductPageState extends State<AddProductPage> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _descController,
+                        controller: _productDescController,
                         minLines:
-                            4, // 👈 Initial height (you can increase to 5 or 6 if needed)
+                        4, // 👈 Initial height (you can increase to 5 or 6 if needed)
                         maxLines:
-                            null, // 👈 Allows it to grow vertically as needed
+                        8, // 👈 Allows it to grow vertically as needed
                         decoration: const InputDecoration(
-                          labelText: 'Description',
+                          labelText: 'Product Description',
+                          labelStyle: TextStyle(fontWeight: FontWeight.normal),
+                          floatingLabelStyle: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 20.0,
+                            horizontal: 12.0,
+                          ),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Required';
+                          }
+                          if (val.trim().length < 10) {
+                            return 'At least 10 characters required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _careInstrucController,
+                        minLines:
+                        4, // 👈 Initial height (you can increase to 5 or 6 if needed)
+                        maxLines:
+                        8, // 👈 Allows it to grow vertically as needed
+                        decoration: const InputDecoration(
+                          labelText: 'Care Instruction',
+                          labelStyle: TextStyle(fontWeight: FontWeight.normal),
+                          floatingLabelStyle: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            vertical: 20.0,
+                            horizontal: 12.0,
+                          ),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Required';
+                          }
+                          if (val.trim().length < 10) {
+                            return 'At least 10 characters required';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _deliveryInfoController,
+                        minLines:
+                        4, // 👈 Initial height (you can increase to 5 or 6 if needed)
+                        maxLines:
+                        8, // 👈 Allows it to grow vertically as needed
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Information',
                           labelStyle: TextStyle(fontWeight: FontWeight.normal),
                           floatingLabelStyle: TextStyle(
                             fontWeight: FontWeight.bold,

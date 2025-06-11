@@ -1,7 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Product {
   final String id;
   final String name;
-  final String description;
+  final String productDescription;
+  final String careInstruction;
+  final String deliveryInformation;
   final String categoryId;
   final List<String> imageUrls;
   final bool isAvailable;
@@ -15,7 +19,9 @@ class Product {
   Product({
     required this.id,
     required this.name,
-    required this.description,
+    required this.productDescription,
+    required this.careInstruction,
+    required this.deliveryInformation,
     required this.categoryId,
     required this.imageUrls,
     required this.isAvailable,
@@ -30,7 +36,9 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'],
     name: json['name'],
-    description: json['description'],
+    productDescription: json['productDescription'],
+    careInstruction: json['careInstruction'] ?? '',
+    deliveryInformation: json['deliveryInformation'] ?? '',
     categoryId: json['categoryId'],
     imageUrls: List<String>.from(json['imageUrls'] ?? []),
     isAvailable: json['isAvailable'] ?? true,
@@ -39,20 +47,22 @@ class Product {
     tags: List<String>.from(json['tags'] ?? []),
     popularityScore: json['popularityScore'] ?? 0,
     reviews:
-        (json['reviews'] as List<dynamic>?)
-            ?.map((e) => Review.fromJson(e))
-            .toList() ??
+    (json['reviews'] as List<dynamic>?)
+        ?.map((e) => Review.fromJson(e))
+        .toList() ??
         [],
     extraAttributes:
-        json['extraAttributes'] != null
-            ? ExtraAttributes.fromJson(json['extraAttributes'])
-            : null,
+    json['extraAttributes'] != null
+        ? ExtraAttributes.fromJson(json['extraAttributes'])
+        : null,
   );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'description': description,
+    'productDescription': productDescription,
+    'careInstruction': careInstruction,
+    'deliveryInformation': deliveryInformation,
     'categoryId': categoryId,
     'imageUrls': imageUrls,
     'isAvailable': isAvailable,
@@ -80,7 +90,7 @@ class ExtraAttributes {
       ExtraAttributes(
         defaultVariant: Variant.fromJson(json['defaultVariant']),
         variants:
-            (json['variants'] as List).map((e) => Variant.fromJson(e)).toList(),
+        (json['variants'] as List).map((e) => Variant.fromJson(e)).toList(),
         shapes: (json['shapes'] as List).map((e) => Shape.fromJson(e)).toList(),
       );
 
@@ -113,9 +123,9 @@ class Variant {
     tier: json['tier'],
     price: (json['price'] as num).toDouble(),
     oldPrice:
-        json['oldPrice'] != null ? (json['oldPrice'] as num).toDouble() : null,
+    json['oldPrice'] != null ? (json['oldPrice'] as num).toDouble() : null,
     discount:
-        json['discount'] != null ? (json['discount'] as num).toDouble() : null,
+    json['discount'] != null ? (json['discount'] as num).toDouble() : null,
     sku: json['sku'],
   );
 
@@ -144,31 +154,65 @@ class Shape {
 class Review {
   final String userId;
   final String userName;
+  final List<String> imageUrls;
   final double rating;
   final String comment;
+  final String occasion;
+  final String place;
   final DateTime createdAt;
 
   Review({
     required this.userId,
     required this.userName,
+    required this.imageUrls,
     required this.rating,
     required this.comment,
+    required this.occasion,
+    required this.place,
     required this.createdAt,
   });
 
-  factory Review.fromJson(Map<String, dynamic> json) => Review(
-    userId: json['userId'],
-    userName: json['userName'],
-    rating: (json['rating'] as num).toDouble(),
-    comment: json['comment'],
-    createdAt: DateTime.parse(json['createdAt']),
-  );
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      userId: json['userId'] ?? '',
+      userName: json['userName'] ?? '',
+      imageUrls: List<String>.from(json['imageUrls'] ?? []),
+      rating: _parseRating(json['rating']),
+      comment: json['comment'] ?? '',
+      occasion: json['occasion'] ?? '',
+      place: json['place'] ?? '',
+      createdAt: _parseCreatedAt(json['createdAt']),
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-    'userId': userId,
-    'userName': userName,
-    'rating': rating,
-    'comment': comment,
-    'createdAt': createdAt.toIso8601String(),
-  };
+  static double _parseRating(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  static DateTime _parseCreatedAt(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (_) {
+        return DateTime.now();
+      }
+    }
+    return DateTime.now(); // fallback if null or unexpected type
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'userName': userName,
+      'rating': rating,
+      'imageUrls': imageUrls,
+      'comment': comment,
+      'occasion': occasion,
+      'place': place,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
 }
