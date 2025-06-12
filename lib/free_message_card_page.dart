@@ -427,12 +427,32 @@ class _FreeMessageCardPageState extends State<FreeMessageCardPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      // Handle continue or submit
+                      if (selectedOccasion == null || selectedOccasion!.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Please select an occasion."),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (toController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Please enter recipient name."),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      // If all validations pass
                       Navigator.pop(context, {
                         "occasion": selectedOccasion,
-                        "to": toController.text,
-                        "message": messageController.text,
-                        "from": fromController.text,
+                        "to": toController.text.trim(),
+                        "message": messageController.text.trim(),
+                        "from": fromController.text.trim(),
                         "hideSenderName": hideSenderName,
                       });
                     },
