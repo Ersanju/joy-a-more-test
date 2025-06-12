@@ -961,16 +961,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
 
     return SizedBox(
-      height: 160,
+      height: 170,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: reviews.length,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 1),
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final review = reviews[index];
           return Container(
-            width: 260,
+            width: 240,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -986,9 +986,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  review.userName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    ReviewUserInfo(userId: review.userId),
+                    const SizedBox(width: 8),
+                    Text(
+                      "${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}",
+                      style: const TextStyle(fontSize: 12, color: Colors.black38),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -1010,13 +1016,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const Spacer(),
-                Text(
-                  "${review.occasion} • ${review.place}",
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-                Text(
-                  "${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}",
-                  style: const TextStyle(fontSize: 12, color: Colors.black38),
+                Row(
+                  children: [
+                    if (review.occasion.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          border: Border.all(color: Colors.orange),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          review.occasion,
+                          style: const TextStyle(fontSize: 12, color: Colors.black87),
+                        ),
+                      ),
+                    if (review.place.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          border: Border.all(color: Colors.teal),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          review.place,
+                          style: const TextStyle(fontSize: 12, color: Colors.black87),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -1288,3 +1318,82 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 }
+
+class ReviewUserInfo extends StatefulWidget {
+  final String userId;
+
+  const ReviewUserInfo({super.key, required this.userId});
+
+  @override
+  State<ReviewUserInfo> createState() => _ReviewUserInfoState();
+}
+
+class _ReviewUserInfoState extends State<ReviewUserInfo> {
+  late Future<DocumentSnapshot> _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: _userFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: const [
+              CircleAvatar(radius: 12, backgroundColor: Colors.grey),
+              SizedBox(width: 8),
+              Text("Loading...", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          );
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Row(
+            children: const [
+              CircleAvatar(radius: 12, backgroundColor: Colors.grey),
+              SizedBox(width: 8),
+              Text("Anonymous", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          );
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final name = data['userName'] ?? 'User';
+        final profilePhoto = data['profileImageUrl'];
+
+        return Row(
+          children: [
+            profilePhoto != null && profilePhoto.toString().isNotEmpty
+                ? CircleAvatar(
+              radius: 12,
+              backgroundImage: NetworkImage(profilePhoto),
+            )
+                : CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.grey.shade300,
+              child: Text(
+                name[0].toUpperCase(),
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
