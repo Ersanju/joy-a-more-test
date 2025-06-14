@@ -6,6 +6,15 @@ import 'package:joy_a_more_test/product_model.dart';
 class ProductListPage extends StatelessWidget {
   const ProductListPage({super.key});
 
+  String convertDriveLinkToDirect(String url) {
+    final match = RegExp(r'd/([^/]+)').firstMatch(url);
+    if (url.contains("drive.google.com/file/d/") && match != null) {
+      final fileId = match.group(1);
+      return 'https://drive.google.com/uc?export=view&id=$fileId';
+    }
+    return url;
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,7 +25,7 @@ class ProductListPage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream:
             FirebaseFirestore.instance
-                .collection('products')
+                .collection('cake_product')
                 .orderBy('createdAt', descending: true)
                 .snapshots(),
         builder: (context, snapshot) {
@@ -54,7 +63,7 @@ class ProductListPage extends StatelessWidget {
                 ),
                 child: InkWell(
                   onTap: () {
-                    final product = Product.fromJson({
+                    final product = CakeProduct.fromJson({
                       ...data,
                       'id': docs[index].id,
                     });
@@ -79,7 +88,7 @@ class ProductListPage extends StatelessWidget {
                           child:
                               imageUrls.isNotEmpty
                                   ? Image.network(
-                                    imageUrls[0],
+                                    convertDriveLinkToDirect(imageUrls[0]),
                                     width: 70,
                                     height: 70,
                                     fit: BoxFit.cover,

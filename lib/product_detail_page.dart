@@ -24,6 +24,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int selectedVariantIndex = 0;
   Map<String, dynamic>? selectedCardData;
 
+
+  String convertDriveLinkToDirect(String url) {
+    final match = RegExp(r'd/([^/]+)').firstMatch(url);
+    if (url.contains("drive.google.com/file/d/") && match != null) {
+      final fileId = match.group(1);
+      return 'https://drive.google.com/uc?export=view&id=$fileId';
+    }
+    return url;
+  }
+
   // Price
   Widget _buildProductPriceRow({
     required String name,
@@ -1139,7 +1149,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             (index) => setState(() => _selectedImage = index),
                         itemBuilder: (context, index) {
                           return Image.network(
-                            imageUrls[index],
+                            convertDriveLinkToDirect(imageUrls[index]),
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder:

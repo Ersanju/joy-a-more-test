@@ -239,7 +239,7 @@ class _AddProductPageState extends State<AddProductPage> {
     }
 
     final productId = _uuid.v4();
-    final product = Product(
+    final product = CakeProduct(
       id: productId,
       name: name,
       productDescription:
