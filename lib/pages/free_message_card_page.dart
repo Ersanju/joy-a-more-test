@@ -171,9 +171,7 @@ class _FreeMessageCardPageState extends State<FreeMessageCardPage> {
                   child: Row(
                     children: [
                       // Left blank side
-                      Expanded(
-                        child: Container(color: Colors.grey.shade300),
-                      ),
+                      Expanded(child: Container(color: Colors.grey.shade300)),
                       // Right side with content
                       Expanded(
                         child: Container(
@@ -229,8 +227,6 @@ class _FreeMessageCardPageState extends State<FreeMessageCardPage> {
       },
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -404,9 +400,14 @@ class _FreeMessageCardPageState extends State<FreeMessageCardPage> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      if (toController.text.trim().isEmpty || messageController.text.trim().isEmpty) {
+                      if (toController.text.trim().isEmpty ||
+                          messageController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Please fill both 'Dear' and 'Message' fields to preview.")),
+                          const SnackBar(
+                            content: Text(
+                              "Please fill both 'Dear' and 'Message' fields to preview.",
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -427,7 +428,8 @@ class _FreeMessageCardPageState extends State<FreeMessageCardPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      if (selectedOccasion == null || selectedOccasion!.isEmpty) {
+                      if (selectedOccasion == null ||
+                          selectedOccasion!.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text("Please select an occasion."),

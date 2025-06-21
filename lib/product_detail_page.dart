@@ -5,7 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:joy_a_more_test/product_model.dart';
 
-import 'free_message_card_page.dart';
+import 'pages/free_message_card_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;

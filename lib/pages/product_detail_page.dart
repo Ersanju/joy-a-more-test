@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'free_message_card_page.dart';
+
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> productData;
 
@@ -19,6 +21,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int _selectedVariantIndex = 0;
   Timer? _autoScrollTimer;
   String? _deliveryLocation = "Detecting location...";
+  DateTime? _selectedDate;
+  String? _selectedTimeSlot;
+  Map<String, dynamic>? _selectedCardData;
+  String? _cakeMessage;
 
   @override
   void initState() {
@@ -114,6 +120,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 deliveryLocation: _deliveryLocation,
                 onChangePressed: () => _showLocationOptions(context),
               ),
+
+              // Delivery date & time
+              buildDeliveryDateTimePicker(),
+              const SizedBox(height: 20),
+
+              // Cake & Card Message
+              _buildMessageSection(context),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -680,6 +694,301 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   }
                 },
                 child: const Text("Update"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Widget buildDeliveryDateTimePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        const Text(
+          "Select Delivery Date & Time",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            // Date Picker
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  DateTime now = DateTime.now();
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: now,
+                    firstDate: now,
+                    lastDate: now.add(const Duration(days: 30)),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDate = picked;
+                      _selectedTimeSlot = null;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.date_range),
+                label: Text(
+                  _selectedDate != null
+                      ? "${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}"
+                      : "Pick Date",
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Time Slot Dropdown
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  if (_selectedDate == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please select a date first"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  List<String> slots = _generateTimeSlotsForDate(
+                    _selectedDate!,
+                  );
+                  String? selected = await showModalBottomSheet<String>(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder:
+                        (context) => ListView(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(16),
+                          children:
+                              slots.map((slot) {
+                                return ListTile(
+                                  title: Text(slot),
+                                  onTap: () => Navigator.pop(context, slot),
+                                );
+                              }).toList(),
+                        ),
+                  );
+
+                  if (selected != null) {
+                    setState(() => _selectedTimeSlot = selected);
+                  }
+                },
+                icon: const Icon(Icons.access_time),
+                label: Text(
+                  _selectedTimeSlot ?? "Pick Time Slot",
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // Confirmation message
+        if (_selectedDate != null && _selectedTimeSlot != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              "Selected: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year} • $_selectedTimeSlot",
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _formatTime(int hour) {
+    final h = hour > 12 ? hour - 12 : hour;
+    final suffix = hour >= 12 ? "PM" : "AM";
+    return "${h.toString().padLeft(2, '0')}:00 $suffix";
+  }
+
+  List<String> _generateTimeSlotsForDate(DateTime selectedDate) {
+    final now = DateTime.now();
+    final slots = <String>[];
+
+    for (int hour = 10; hour < 22; hour++) {
+      final slotStart = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        hour,
+      );
+
+      final label = "${_formatTime(hour)} – ${_formatTime(hour + 1)}";
+
+      // Enforce 2-hour future rule if slot is today
+      if (slotStart.isAfter(now.add(const Duration(hours: 2)))) {
+        slots.add(label);
+      } else if (selectedDate.day != now.day ||
+          selectedDate.month != now.month ||
+          selectedDate.year != now.year) {
+        slots.add(label);
+      }
+    }
+
+    return slots;
+  }
+
+  Widget _buildMessageSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Add Messages",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 10),
+
+        // 🎂 Cake Message Button
+        ElevatedButton.icon(
+          icon: const Icon(Icons.cake),
+          label: Text(
+            _cakeMessage != null ? "Edit Cake Message" : "Message on Cake",
+          ),
+          onPressed: _showCakeMessageDialog,
+        ),
+
+        // 🎂 Cake Message Summary Box
+        if (_cakeMessage != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("🎂 ", style: TextStyle(fontSize: 16)),
+                Expanded(
+                  child: Text(
+                    "Cake Message: $_cakeMessage",
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 8),
+
+        // 📝 Free Message Card Button
+        ElevatedButton.icon(
+          icon: const Icon(Icons.card_giftcard),
+          label: const Text("Add Free Message Card"),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FreeMessageCardPage()),
+            );
+
+            if (result != null && result is Map<String, dynamic>) {
+              setState(() {
+                _selectedCardData = result;
+              });
+            }
+          },
+        ),
+
+        const SizedBox(height: 12),
+
+        // 📝 Free Message Card Summary Box
+        if (_selectedCardData != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Occasion: ${_selectedCardData!['occasion']}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Message: ${_selectedCardData!['message'].toString().length > 40 ? "${_selectedCardData!['message'].toString().substring(0, 40)}..." : _selectedCardData!['message']}",
+                  style: const TextStyle(color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showCakeMessageDialog() {
+    TextEditingController controller = TextEditingController(
+      text: _cakeMessage,
+    );
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Message on Cake"),
+            content: TextField(
+              controller: controller,
+              maxLength: 30,
+              decoration: const InputDecoration(
+                hintText: "Enter message (max 30 chars)",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() => _cakeMessage = controller.text.trim());
+                  Navigator.pop(context);
+                },
+                child: const Text("Save"),
               ),
             ],
           ),
