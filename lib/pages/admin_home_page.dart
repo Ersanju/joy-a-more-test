@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:joy_a_more_test/add_product_page.dart';
-import 'package:joy_a_more_test/product_list_page.dart';
+import 'package:joy_a_more_test/pages/category_list_page.dart';
+import 'package:joy_a_more_test/pages/product_list_page.dart';
 
 class AdminHomePage extends StatelessWidget {
   const AdminHomePage({super.key});
@@ -21,12 +22,36 @@ class AdminHomePage extends StatelessWidget {
           mainAxisSpacing: 16,
           children: [
             _AdminTile(
-              title: "Insert Product",
+              title: "Add Category",
               icon: Icons.shopping_bag_outlined,
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AddProductPage()),
+                );
+              },
+            ),
+            _AdminTile(
+              title: "Category List",
+              icon: Icons.list_alt_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CategoryListPage(),
+                  ),
+                );
+              },
+            ),
+            _AdminTile(
+              title: "Add Product",
+              icon: Icons.list_alt_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddProductPage(),
+                  ),
                 );
               },
             ),
@@ -37,7 +62,7 @@ class AdminHomePage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProductListPage(),
+                    builder: (context) => const AddProductPage(),
                   ),
                 );
               },

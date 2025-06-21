@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:joy_a_more_test/admin_home_page.dart';
+import 'package:joy_a_more_test/pages/admin_home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
