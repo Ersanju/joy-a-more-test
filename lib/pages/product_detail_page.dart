@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int? _expandedTileIndex;
   late Future<List<Review>> _reviewsFuture;
   late Future<List<Product>> _similarProductsFuture;
+  List<Product>? _shuffledProducts;
+  bool _hasShuffled = false;
 
   @override
   void initState() {
@@ -114,6 +117,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 "Available Options",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
+              SizedBox(height: 10),
               buildVariantSelector(
                 variants: variants,
                 selectedIndex: _selectedVariantIndex,
@@ -1082,7 +1086,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Text(
               "About the product",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -1093,7 +1097,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             final isExpanded = _expandedTileIndex == index;
 
             return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -1292,7 +1296,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   Widget buildSimilarProductsSection(Future<List<Product>> future) {
     return Padding(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1307,15 +1311,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
+
               if (snapshot.hasError ||
                   !snapshot.hasData ||
                   snapshot.data!.isEmpty) {
                 return const Text("No similar products found.");
               }
 
-              final products = snapshot.data!;
+              // Only shuffle once
+              if (!_hasShuffled) {
+                final products = List<Product>.from(snapshot.data!);
+                products.shuffle();
+                _shuffledProducts = products;
+                _hasShuffled = true;
+              }
+
+              final products = _shuffledProducts!;
+
               return SizedBox(
-                height: 180,  // adjusted height
+                height: 180,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: products.length,
@@ -1328,14 +1342,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ProductDetailPage(
-                              productData: product.toJson(),
-                            ),
+                            builder:
+                                (_) => ProductDetailPage(
+                                  productData: product.toJson(),
+                                ),
                           ),
                         );
                       },
                       child: Container(
-                        width: 130,
+                        width: 140,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -1348,51 +1363,52 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ],
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Fully rounded image
                             Padding(
-                              padding: const EdgeInsets.all(1.0),
+                              padding: const EdgeInsets.all(2.0),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: AspectRatio(
-                                  aspectRatio: 1, // square
+                                  aspectRatio: 1,
                                   child: Image.network(
                                     product.imageUrls.isNotEmpty
                                         ? product.imageUrls.first
                                         : '',
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        Container(
+                                    errorBuilder:
+                                        (_, __, ___) => Container(
                                           color: Colors.grey[300],
-                                          child: const Icon(Icons.broken_image, size: 40),
+                                          child: const Icon(
+                                            Icons.broken_image,
+                                            size: 40,
+                                          ),
                                         ),
                                   ),
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     product.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontSize: 12
-                                    ),
+                                    style: const TextStyle(fontSize: 12),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '₹${(product.extraAttributes?.cakeAttribute?.variants.isNotEmpty == true
-                                        ? product.extraAttributes!.cakeAttribute!.variants.first.price
-                                        : 0.0).toStringAsFixed(2)}',
+                                    '₹${(product.extraAttributes?.cakeAttribute?.variants.isNotEmpty == true ? product.extraAttributes!.cakeAttribute!.variants.first.price : 0.0).toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      color: Colors.orange,
-                                      fontSize: 13
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ],
@@ -1411,8 +1427,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
     );
   }
-
-
 
   Future<List<Product>> fetchSimilarProductsByTags({
     required String currentProductId,
