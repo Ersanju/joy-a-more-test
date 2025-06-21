@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> productData;
@@ -14,15 +16,16 @@ class ProductDetailPage extends StatefulWidget {
 class _ProductDetailPageState extends State<ProductDetailPage> {
   int _selectedImage = 0;
   late PageController _pageController;
-  int selectedVariantIndex = 0;
-  Map<String, dynamic>? selectedCardData;
+  int _selectedVariantIndex = 0;
   Timer? _autoScrollTimer;
+  String? _deliveryLocation = "Detecting location...";
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _startAutoScroll();
+    _getCurrentLocation();
   }
 
   @override
@@ -37,15 +40,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final imageUrls = List<String>.from(widget.productData['imageUrls'] ?? []);
     final name = widget.productData['name'] ?? 'Unnamed';
     final variants = List<Map<String, dynamic>>.from(
-      widget.productData['extraAttributes']?['cakeAttribute']?['variants'] ?? [],
+      widget.productData['extraAttributes']?['cakeAttribute']?['variants'] ??
+          [],
     );
-    final selectedVariant = variants[selectedVariantIndex];
+    final selectedVariant = variants[_selectedVariantIndex];
     final double price = (selectedVariant['price'] as num).toDouble();
     final double? oldPrice =
-    selectedVariant['oldPrice'] != null
-        ? (selectedVariant['oldPrice'] as num).toDouble()
-        : null;
-
+        selectedVariant['oldPrice'] != null
+            ? (selectedVariant['oldPrice'] as num).toDouble()
+            : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -95,16 +98,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               buildVariantSelector(
                 variants: variants,
-                selectedIndex: selectedVariantIndex,
+                selectedIndex: _selectedVariantIndex,
                 onVariantSelected: (index) {
                   setState(() {
-                    selectedVariantIndex = index;
+                    _selectedVariantIndex = index;
                   });
                 },
                 imageUrls: imageUrls,
               ),
               const SizedBox(height: 20),
 
+              // Delivery Location
+              buildDeliveryLocationCard(
+                context: context,
+                deliveryLocation: _deliveryLocation,
+                onChangePressed: () => _showLocationOptions(context),
+              ),
             ],
           ),
         ),
@@ -180,16 +189,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     });
   }
 
-  //
+  // Name, Price
   Widget buildProductPriceRow({
     required String name,
     required double price,
     double? oldPrice,
   }) {
     final int discountPercent =
-    (oldPrice != null && oldPrice > 0)
-        ? (((oldPrice - price) / oldPrice) * 100).round()
-        : 0;
+        (oldPrice != null && oldPrice > 0)
+            ? (((oldPrice - price) / oldPrice) * 100).round()
+            : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,9 +243,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }) {
     final int savings = (oldPrice != null) ? (oldPrice - price).round() : 0;
     final int discountPercent =
-    oldPrice != null && oldPrice > 0
-        ? ((savings / oldPrice) * 100).round()
-        : 0;
+        oldPrice != null && oldPrice > 0
+            ? ((savings / oldPrice) * 100).round()
+            : 0;
 
     showModalBottomSheet(
       context: context,
@@ -295,6 +304,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  // Product variants
   Widget buildVariantSelector({
     required List<Map<String, dynamic>> variants,
     required int selectedIndex,
@@ -305,52 +315,374 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children:
-        variants.asMap().entries.map((entry) {
-          final int index = entry.key;
-          final variant = entry.value;
-          final bool isSelected = index == selectedIndex;
+            variants.asMap().entries.map((entry) {
+              final int index = entry.key;
+              final variant = entry.value;
+              final bool isSelected = index == selectedIndex;
 
-          return GestureDetector(
-            onTap: () => onVariantSelected(index),
-            child: Container(
-              width: 100,
-              height: 150,
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isSelected ? Colors.red : Colors.grey,
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(10),
-                color: isSelected ? Colors.red.shade50 : Colors.white,
-              ),
-              child: Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      variant['image'] ?? imageUrls.first,
-                      height: 90,
-                      width: 90,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (_, __, ___) => const Icon(Icons.broken_image),
+              return GestureDetector(
+                onTap: () => onVariantSelected(index),
+                child: Container(
+                  width: 100,
+                  height: 150,
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected ? Colors.red : Colors.grey,
+                      width: 2,
                     ),
+                    borderRadius: BorderRadius.circular(10),
+                    color: isSelected ? Colors.red.shade50 : Colors.white,
                   ),
-                  const SizedBox(height: 5),
-                  Text('${variant['weight']}'),
-                  Text(
-                    '₹${variant['price']}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          variant['image'] ?? imageUrls.first,
+                          height: 90,
+                          width: 90,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => const Icon(Icons.broken_image),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text('${variant['weight']}'),
+                      Text(
+                        '₹${variant['price']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
+                ),
+              );
+            }).toList(),
       ),
     );
   }
 
+  // Delivery location
+  Widget buildDeliveryLocationCard({
+    required BuildContext context,
+    required String? deliveryLocation,
+    required VoidCallback onChangePressed,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Deliver to:",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  deliveryLocation ?? "No location selected",
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: onChangePressed,
+            label: const Text(
+              "Change",
+              style: TextStyle(color: Colors.blueAccent),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              elevation: 1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              textStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (_) => Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const Text(
+                  "Update Delivery Location",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(
+                    Icons.my_location,
+                    color: Colors.deepPurple,
+                  ),
+                  title: const Text("Use Current Location"),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _getCurrentLocation();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.edit_location_alt,
+                    color: Colors.deepPurple,
+                  ),
+                  title: const Text("Enter Manually"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _changeLocationManually();
+                  },
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() => _deliveryLocation = "Location services are disabled.");
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() => _deliveryLocation = "Location permission denied.");
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      setState(
+        () => _deliveryLocation = "Location permission permanently denied.",
+      );
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    final place = placemarks.first;
+    setState(() {
+      _deliveryLocation =
+          "${place.name}, ${place.subLocality}, ${place.locality}, \n ${place.subAdministrativeArea}, ${place.postalCode}";
+    });
+  }
+
+  Future<void> _changeLocationManually() async {
+    final pinCodeController = TextEditingController();
+
+    // Allowed Gonda pincodes (you can update this list)
+    final allowedPincodes = ['271001', '271002', '271003', '271304', '271305'];
+
+    // Step 1: Ask for pin code first
+    await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Check for your location"),
+            content: TextField(
+              controller: pinCodeController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                hintText: "Enter 6-digit postal code",
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final enteredPin = pinCodeController.text.trim();
+
+                  if (enteredPin.length != 6 ||
+                      !RegExp(r'^\d{6}$').hasMatch(enteredPin)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Enter valid 6-digit postal code"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (!allowedPincodes.contains(enteredPin)) {
+                    Navigator.pop(context);
+                    await showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: const Text("Not Operational"),
+                            content: const Text(
+                              "We are not delivering at this location yet.",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("OK"),
+                              ),
+                            ],
+                          ),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(context); // Close pin code dialog
+
+                  // Step 2: Continue with full address form
+                  await showFullAddressForm(enteredPin);
+                },
+                child: const Text("Check"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> showFullAddressForm(String postalCode) async {
+    final formKey = GlobalKey<FormState>();
+    final address1Controller = TextEditingController();
+    final address2Controller = TextEditingController();
+    final areaController = TextEditingController();
+    final districtController = TextEditingController(text: "Gonda");
+    final stateController = TextEditingController(text: "Uttar Pradesh");
+
+    await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text("Enter Delivery Details"),
+            content: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: address1Controller,
+                      decoration: const InputDecoration(
+                        labelText: "Address Line 1",
+                      ),
+                      validator:
+                          (value) =>
+                              value == null || value.trim().isEmpty
+                                  ? 'Required'
+                                  : null,
+                    ),
+                    TextFormField(
+                      controller: address2Controller,
+                      decoration: const InputDecoration(
+                        labelText: "Address Line 2",
+                      ),
+                    ),
+                    TextFormField(
+                      controller: areaController,
+                      decoration: const InputDecoration(
+                        labelText: "Area / Locality",
+                      ),
+                      validator:
+                          (value) =>
+                              value == null || value.trim().isEmpty
+                                  ? 'Required'
+                                  : null,
+                    ),
+                    TextFormField(
+                      controller: districtController,
+                      decoration: const InputDecoration(labelText: "District"),
+                      enabled: false,
+                    ),
+                    TextFormField(
+                      controller: stateController,
+                      decoration: const InputDecoration(labelText: "State"),
+                      enabled: false,
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: "Postal Code",
+                      ),
+                      initialValue: postalCode,
+                      enabled: false,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cancel"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    setState(() {
+                      _deliveryLocation =
+                          "${address1Controller.text}, ${address2Controller.text}, ${areaController.text}, Gonda, Uttar Pradesh - $postalCode";
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text("Update"),
+              ),
+            ],
+          ),
+    );
+  }
 }
