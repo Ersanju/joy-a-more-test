@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../models/review.dart';
 import 'free_message_card_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
@@ -26,6 +28,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Map<String, dynamic>? _selectedCardData;
   String? _cakeMessage;
   int? _expandedTileIndex;
+  late Future<List<Review>> _reviewsFuture;
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     _pageController = PageController();
     _startAutoScroll();
     _getCurrentLocation();
+    _reviewsFuture = fetchProductReviews(widget.productData['id']);
   }
 
   @override
@@ -133,6 +137,37 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               // About the product
               buildAboutExpandableTilesSection(widget.productData),
 
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Customer Reviews",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<Review>>(
+                      future: _reviewsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return const Text("Failed to load reviews");
+                        }
+                        return buildReviewSlider(snapshot.data ?? []);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -999,6 +1034,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
     );
   }
+
   Widget buildAboutExpandableTilesSection(Map<String, dynamic> product) {
     // Safely extract list fields or fallback to an empty list
     final List<String> productDescription = List<String>.from(
@@ -1077,26 +1113,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children:
-                        (tile["content"] as List<String>).map((line) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "• ",
-                                  style: TextStyle(height: 1.5),
+                            (tile["content"] as List<String>).map((line) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "• ",
+                                      style: TextStyle(height: 1.5),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        line,
+                                        style: const TextStyle(height: 1.5),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Expanded(
-                                  child: Text(
-                                    line,
-                                    style: const TextStyle(height: 1.5),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                       ),
                     ),
                 ],
@@ -1105,6 +1141,217 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           }),
         ],
       ),
+    );
+  }
+
+  Widget buildReviewSlider(List<Review> reviews) {
+    if (reviews.isEmpty) {
+      return const Text("No reviews yet.");
+    }
+
+    return SizedBox(
+      height: 170,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: reviews.length,
+        padding: const EdgeInsets.symmetric(horizontal: 1),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final review = reviews[index];
+          return Container(
+            width: 240,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ReviewUserInfo(userId: review.userId),
+                    const SizedBox(width: 8),
+                    Text(
+                      "${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black38,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(
+                    5,
+                    (i) => Icon(
+                      i < review.rating.round()
+                          ? Icons.star
+                          : Icons.star_border,
+                      size: 16,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  review.comment,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    if (review.occasion.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          border: Border.all(color: Colors.orange),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          review.occasion,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    if (review.place.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          border: Border.all(color: Colors.teal),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          review.place,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<List<Review>> fetchProductReviews(String productId) async {
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .get();
+
+    if (!doc.exists) return [];
+
+    final data = doc.data();
+    if (data == null || data['reviews'] == null) return [];
+
+    final List<dynamic> reviewList = data['reviews'];
+
+    return reviewList
+        .map((item) => Review.fromJson(item as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // sort newest first
+  }
+}
+
+class ReviewUserInfo extends StatefulWidget {
+  final String userId;
+
+  const ReviewUserInfo({super.key, required this.userId});
+
+  @override
+  State<ReviewUserInfo> createState() => _ReviewUserInfoState();
+}
+
+class _ReviewUserInfoState extends State<ReviewUserInfo> {
+  late Future<DocumentSnapshot> _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture =
+        FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot>(
+      future: _userFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: const [
+              CircleAvatar(radius: 12, backgroundColor: Colors.grey),
+              SizedBox(width: 8),
+              Text("Loading...", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          );
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Row(
+            children: const [
+              CircleAvatar(radius: 12, backgroundColor: Colors.grey),
+              SizedBox(width: 8),
+              Text("Anonymous", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          );
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final name = data['userName'] ?? 'User';
+        final profilePhoto = data['profileImageUrl'];
+
+        return Row(
+          children: [
+            profilePhoto != null && profilePhoto.toString().isNotEmpty
+                ? CircleAvatar(
+                  radius: 12,
+                  backgroundImage: NetworkImage(profilePhoto),
+                )
+                : CircleAvatar(
+                  radius: 12,
+                  backgroundColor: Colors.grey.shade300,
+                  child: Text(
+                    name[0].toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            const SizedBox(width: 8),
+            Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        );
+      },
     );
   }
 }
