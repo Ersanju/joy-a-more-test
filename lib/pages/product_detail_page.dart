@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../models/product.dart';
 import '../models/review.dart';
 import 'free_message_card_page.dart';
 
@@ -29,6 +30,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String? _cakeMessage;
   int? _expandedTileIndex;
   late Future<List<Review>> _reviewsFuture;
+  late Future<List<Product>> _similarProductsFuture;
 
   @override
   void initState() {
@@ -37,6 +39,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     _startAutoScroll();
     _getCurrentLocation();
     _reviewsFuture = fetchProductReviews(widget.productData['id']);
+    _similarProductsFuture = fetchSimilarProductsByTags(
+      currentProductId: widget.productData['id'],
+      tags: List<String>.from(widget.productData['tags'] ?? []),
+      limit: 12, // you can limit to any number you want
+    );
   }
 
   @override
@@ -68,7 +75,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -138,7 +145,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               buildAboutExpandableTilesSection(widget.productData),
 
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -168,6 +175,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ],
                 ),
               ),
+
+              // You may also like section
+              buildSimilarProductsSection(_similarProductsFuture),
             ],
           ),
         ),
@@ -308,7 +318,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +434,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     required VoidCallback onChangePressed,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -818,7 +828,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     builder:
                         (context) => ListView(
                           shrinkWrap: true,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(8),
                           children:
                               slots.map((slot) {
                                 return ListTile(
@@ -1278,6 +1288,157 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         .map((item) => Review.fromJson(item as Map<String, dynamic>))
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // sort newest first
+  }
+
+  Widget buildSimilarProductsSection(Future<List<Product>> future) {
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "You May Also Like",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          FutureBuilder<List<Product>>(
+            future: future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data!.isEmpty) {
+                return const Text("No similar products found.");
+              }
+
+              final products = snapshot.data!;
+              return SizedBox(
+                height: 180,  // adjusted height
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProductDetailPage(
+                              productData: product.toJson(),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 130,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Fully rounded image
+                            Padding(
+                              padding: const EdgeInsets.all(1.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: AspectRatio(
+                                  aspectRatio: 1, // square
+                                  child: Image.network(
+                                    product.imageUrls.isNotEmpty
+                                        ? product.imageUrls.first
+                                        : '',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        Container(
+                                          color: Colors.grey[300],
+                                          child: const Icon(Icons.broken_image, size: 40),
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 12
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹${(product.extraAttributes?.cakeAttribute?.variants.isNotEmpty == true
+                                        ? product.extraAttributes!.cakeAttribute!.variants.first.price
+                                        : 0.0).toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      color: Colors.orange,
+                                      fontSize: 13
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Future<List<Product>> fetchSimilarProductsByTags({
+    required String currentProductId,
+    required List<String> tags,
+    int limit = 12, // limit to control list size
+  }) async {
+    if (tags.isEmpty) {
+      return []; // No tags, no recommendations
+    }
+
+    final querySnapshot =
+        await FirebaseFirestore.instance
+            .collection('products')
+            .where('tags', arrayContainsAny: tags)
+            .limit(limit)
+            .get();
+
+    final similarProducts =
+        querySnapshot.docs
+            .where(
+              (doc) => doc.id != currentProductId,
+            ) // Exclude current product itself
+            .map((doc) => Product.fromJson(doc.data()))
+            .toList();
+
+    return similarProducts;
   }
 }
 
