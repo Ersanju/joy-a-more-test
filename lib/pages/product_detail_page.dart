@@ -25,6 +25,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   String? _selectedTimeSlot;
   Map<String, dynamic>? _selectedCardData;
   String? _cakeMessage;
+  int? _expandedTileIndex;
 
   @override
   void initState() {
@@ -128,6 +129,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               // Cake & Card Message
               _buildMessageSection(context),
               const SizedBox(height: 20),
+
+              // About the product
+              buildAboutExpandableTilesSection(widget.productData),
+
             ],
           ),
         ),
@@ -992,6 +997,114 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ],
           ),
+    );
+  }
+  Widget buildAboutExpandableTilesSection(Map<String, dynamic> product) {
+    // Safely extract list fields or fallback to an empty list
+    final List<String> productDescription = List<String>.from(
+      product['productDescription'] ?? [],
+    );
+    final List<String> careInstruction = List<String>.from(
+      product['careInstruction'] ?? [],
+    );
+    final List<String> deliveryInformation = List<String>.from(
+      product['deliveryInformation'] ?? [],
+    );
+
+    final List<Map<String, dynamic>> dynamicTiles = [
+      {
+        "title": "Product Description",
+        "icon": Icons.assignment,
+        "content": productDescription,
+      },
+      {
+        "title": "Care Instructions",
+        "icon": Icons.insert_chart,
+        "content": careInstruction,
+      },
+      {
+        "title": "Delivery Information",
+        "icon": Icons.local_shipping,
+        "content": deliveryInformation,
+      },
+    ];
+
+    return Container(
+      color: const Color(0xFFF9F9F4),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              "About the product",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ...List.generate(dynamicTiles.length, (index) {
+            final tile = dynamicTiles[index];
+            final isExpanded = _expandedTileIndex == index;
+
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    leading: Icon(tile["icon"], color: Colors.green.shade800),
+                    title: Text(
+                      tile["title"],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    trailing: Icon(isExpanded ? Icons.close : Icons.add),
+                    onTap: () {
+                      _expandedTileIndex = isExpanded ? null : index;
+                      // Use StatefulBuilder or make expandedTileIndex a State variable
+                      (this as dynamic).setState(() {});
+                    },
+                  ),
+                  if (isExpanded)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children:
+                        (tile["content"] as List<String>).map((line) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "• ",
+                                  style: TextStyle(height: 1.5),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    line,
+                                    style: const TextStyle(height: 1.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 }
