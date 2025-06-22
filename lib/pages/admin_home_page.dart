@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:joy_a_more_test/add_product_page.dart';
+import 'package:joy_a_more_test/pages/catalog_page.dart';
 import 'package:joy_a_more_test/pages/category_list_page.dart';
 import 'package:joy_a_more_test/pages/product_list_page.dart';
 
@@ -22,12 +23,12 @@ class AdminHomePage extends StatelessWidget {
           mainAxisSpacing: 16,
           children: [
             _AdminTile(
-              title: "Add Category",
+              title: "Product Catalog",
               icon: Icons.shopping_bag_outlined,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddProductPage()),
+                  MaterialPageRoute(builder: (context) => CatalogPage()),
                 );
               },
             ),
