@@ -87,7 +87,7 @@ class _CatalogPageState extends State<CatalogPage> {
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.84,
+                  childAspectRatio: 0.9,
                 ),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
@@ -118,21 +118,19 @@ class _CatalogPageState extends State<CatalogPage> {
                           Stack(
                             children: [
                               ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(16),
-                                  topRight: Radius.circular(16),
+                                borderRadius: BorderRadius.circular(12
                                 ),
                                 child:
                                 (imageUrl != null && imageUrl.isNotEmpty)
                                     ? Image.network(
                                   imageUrl,
-                                  height: 110,
+                                  height: 120,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
                                   errorBuilder:
                                       (context, error, stackTrace) =>
                                       Container(
-                                        height: 100,
+                                        height: 120,
                                         color: Colors.grey.shade300,
                                         child: const Icon(
                                           Icons.broken_image,
@@ -142,7 +140,7 @@ class _CatalogPageState extends State<CatalogPage> {
                                       ),
                                 )
                                     : Container(
-                                  height: 100,
+                                  height: 120,
                                   width: double.infinity,
                                   color: Colors.grey.shade300,
                                   child: const Icon(
@@ -193,7 +191,7 @@ class _CatalogPageState extends State<CatalogPage> {
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
-                              maxLines: 2,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
