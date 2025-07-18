@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:joy_a_more_test/add_product_page.dart';
+import 'package:joy_a_more_test/pages/admin_user_list_page.dart';
 import 'package:joy_a_more_test/pages/catalog_page.dart';
 import 'package:joy_a_more_test/pages/category_list_page.dart';
 import 'package:joy_a_more_test/pages/product_list_page.dart';
@@ -64,6 +65,18 @@ class AdminHomePage extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const AddProductPage(),
+                  ),
+                );
+              },
+            ),
+            _AdminTile(
+              title: "Chat List",
+              icon: Icons.list_alt_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminUserListPage(),
                   ),
                 );
               },

@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "502175496624",
-    "project_id": "joy-a-more-dev",
-    "storage_bucket": "joy-a-more-dev.firebasestorage.app"
+    "project_number": "345445322525",
+    "project_id": "joy-a-bloom-dev",
+    "storage_bucket": "joy-a-bloom-dev.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:502175496624:android:5a2e2240d3d0d2cd0e7e75",
+        "mobilesdk_app_id": "1:345445322525:android:fffdfac8645210ce9a9bf4",
         "android_client_info": {
-          "package_name": "com.example.joy_a_more_dev"
+          "package_name": "com.example.joy_a_bloom_dev"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBbwRh9MDF2QmK814R3XOO3H7T6wWNcO28"
+          "current_key": "AIzaSyCqlaWdhsXM4r0QrwCOfm_9B3Yl51ZBmkg"
         }
       ],
       "services": {
